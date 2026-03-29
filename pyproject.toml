@@ -1,0 +1,127 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "project-dragon"
+version = "0.5.0"
+description = "TraceOps — record and replay LLM agent traces for deterministic regression testing — framework-agnostic, pytest-native"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.10"
+authors = [
+    { name = "Joshua", email = "joshuanishanth120@gmail.com" },
+]
+keywords = [
+    "agents",
+    "llm",
+    "testing",
+    "pytest",
+    "regression",
+    "replay",
+    "record",
+    "vcr",
+    "deterministic",
+    "ai",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Framework :: Pytest",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Testing",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+    "deepdiff>=7.0",
+    "click>=8.0",
+    "rich>=13.0",
+    "anyio>=4.0",
+    "pyyaml>=6.0",
+    "wrapt>=1.16",
+]
+
+[project.optional-dependencies]
+openai = ["openai>=1.0"]
+anthropic = ["anthropic>=0.30"]
+litellm = ["litellm>=1.0"]
+langchain = ["langchain-core>=0.3"]
+langgraph = ["langgraph>=0.2", "langchain-core>=0.3"]
+crewai = ["crewai>=0.30"]
+rag = []
+ragas = ["ragas>=0.2.0", "langchain-openai>=0.1.0"]
+deepeval = ["deepeval>=1.0.0"]
+mcp = []
+semantic = ["openai>=1.0.0"]
+chromadb = ["chromadb>=0.5.0"]
+pinecone = ["pinecone>=3.0.0"]
+qdrant = ["qdrant-client>=1.9.0"]
+weaviate = ["weaviate-client>=4.0.0"]
+llamaindex = ["llama-index-core>=0.10.0"]
+all = [
+    "openai>=1.0",
+    "anthropic>=0.30",
+    "litellm>=1.0",
+    "langchain-core>=0.3",
+    "langgraph>=0.2",
+    "crewai>=0.30",
+    "ragas>=0.2.0",
+    "langchain-openai>=0.1.0",
+    "deepeval>=1.0.0",
+    "chromadb>=0.5.0",
+    "pinecone>=3.0.0",
+    "qdrant-client>=1.9.0",
+    "weaviate-client>=4.0.0",
+    "llama-index-core>=0.10.0",
+]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.24",
+    "pytest-cov>=5.0",
+    "ruff>=0.4",
+    "mypy>=1.10",
+    "openai>=1.0",
+    "anthropic>=0.30",
+]
+
+[project.entry-points."pytest11"]
+traceops = "trace_ops.pytest_plugin"
+
+[project.scripts]
+traceops = "trace_ops.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/ioteverythin/project_dragon"
+Repository = "https://github.com/ioteverythin/project_dragon"
+Issues = "https://github.com/ioteverythin/project_dragon/issues"
+Changelog = "https://github.com/ioteverythin/project_dragon/blob/main/CHANGELOG.md"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/trace_ops"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.coverage.run]
+source = ["trace_ops"]
+
+[tool.coverage.report]
+show_missing = true
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "pass",
+]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "A", "SIM"]
