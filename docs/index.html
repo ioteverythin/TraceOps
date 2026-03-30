@@ -1,0 +1,1089 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TraceOps — Record, Replay & Analyze LLM Agent Traces</title>
+  <meta name="description" content="TraceOps brings the VCR pattern to LLM agents — SDK-level recording, deterministic replay, behavioral gap analysis, and AGENTS.md generation." />
+  <meta property="og:title" content="TraceOps" />
+  <meta property="og:description" content="Record, replay, and analyze LLM agent traces for deterministic regression testing." />
+  <meta property="og:image" content="https://ioteverythin.github.io/TraceOps/og.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0a0e1a;
+      --bg2:       #0f1526;
+      --bg3:       #141c30;
+      --border:    rgba(99,120,220,0.18);
+      --accent:    #6378dc;
+      --accent2:   #8b9ef5;
+      --accent3:   #a5b4fc;
+      --green:     #34d399;
+      --yellow:    #fbbf24;
+      --red:       #f87171;
+      --text:      #e2e8f0;
+      --muted:     #7c8db5;
+      --card:      rgba(15,21,38,0.8);
+      --radius:    12px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    /* ── Noise texture overlay ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── Nav ── */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 2rem;
+      height: 60px;
+      background: rgba(10,14,26,0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-logo {
+      font-weight: 700;
+      font-size: 1.1rem;
+      color: var(--accent3);
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .nav-links {
+      display: flex;
+      gap: 1.8rem;
+      list-style: none;
+    }
+    .nav-links a {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+    .nav-links a:hover { color: var(--text); }
+    .nav-cta {
+      display: flex;
+      gap: 0.75rem;
+      align-items: center;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.45rem 1.1rem;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s;
+      cursor: pointer;
+      border: none;
+    }
+    .btn-ghost {
+      color: var(--muted);
+      background: transparent;
+      border: 1px solid var(--border);
+    }
+    .btn-ghost:hover { color: var(--text); border-color: var(--accent2); }
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+    }
+    .btn-primary:hover { background: var(--accent2); transform: translateY(-1px); }
+
+    /* ── Hero ── */
+    .hero {
+      position: relative;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 6rem 1.5rem 4rem;
+      overflow: hidden;
+    }
+    .hero-glow {
+      position: absolute;
+      width: 800px; height: 800px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(99,120,220,0.15) 0%, transparent 70%);
+      top: 50%; left: 50%;
+      transform: translate(-50%, -60%);
+      pointer-events: none;
+    }
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.3rem 0.9rem;
+      border-radius: 999px;
+      border: 1px solid rgba(99,120,220,0.4);
+      background: rgba(99,120,220,0.08);
+      font-size: 0.78rem;
+      font-weight: 500;
+      color: var(--accent3);
+      margin-bottom: 1.5rem;
+      letter-spacing: 0.02em;
+    }
+    .hero h1 {
+      font-size: clamp(2.4rem, 6vw, 4.5rem);
+      font-weight: 800;
+      line-height: 1.1;
+      letter-spacing: -0.03em;
+      margin-bottom: 1.25rem;
+      background: linear-gradient(135deg, #fff 30%, var(--accent3) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero p {
+      font-size: clamp(1rem, 2.5vw, 1.2rem);
+      color: var(--muted);
+      max-width: 580px;
+      margin: 0 auto 2rem;
+      font-weight: 400;
+    }
+    .hero-actions {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 3rem;
+    }
+    .hero-actions .btn { padding: 0.65rem 1.5rem; font-size: 0.95rem; }
+    .install-box {
+      display: inline-flex;
+      align-items: center;
+      gap: 1rem;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0.65rem 1.25rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.9rem;
+      color: var(--accent3);
+    }
+    .install-box span { color: var(--muted); user-select: none; }
+    .copy-btn {
+      background: none;
+      border: none;
+      color: var(--muted);
+      cursor: pointer;
+      padding: 0.1rem 0.3rem;
+      border-radius: 4px;
+      transition: color 0.2s;
+      font-size: 0.8rem;
+    }
+    .copy-btn:hover { color: var(--accent3); }
+
+    /* ── Stats bar ── */
+    .stats-bar {
+      display: flex;
+      justify-content: center;
+      gap: clamp(2rem, 5vw, 5rem);
+      flex-wrap: wrap;
+      padding: 2.5rem 1.5rem;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      background: var(--bg2);
+    }
+    .stat { text-align: center; }
+    .stat-value {
+      font-size: 2rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--accent2), var(--accent3));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .stat-label { font-size: 0.8rem; color: var(--muted); margin-top: 0.2rem; font-weight: 500; }
+
+    /* ── Sections ── */
+    section { padding: 5rem 1.5rem; position: relative; z-index: 1; }
+    .section-label {
+      display: inline-block;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--accent2);
+      margin-bottom: 0.75rem;
+    }
+    h2 {
+      font-size: clamp(1.6rem, 4vw, 2.4rem);
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin-bottom: 0.75rem;
+      color: #fff;
+    }
+    .section-sub {
+      color: var(--muted);
+      font-size: 1.05rem;
+      max-width: 540px;
+      margin-bottom: 3rem;
+    }
+
+    /* ── Cards grid ── */
+    .container { max-width: 1100px; margin: 0 auto; }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+      gap: 1.25rem;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      transition: border-color 0.2s, transform 0.2s;
+      backdrop-filter: blur(8px);
+    }
+    .card:hover { border-color: rgba(99,120,220,0.4); transform: translateY(-2px); }
+    .card-icon {
+      width: 44px; height: 44px;
+      border-radius: 10px;
+      background: rgba(99,120,220,0.12);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.3rem;
+      margin-bottom: 1rem;
+    }
+    .card h3 {
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 0.4rem;
+      color: #fff;
+    }
+    .card p { font-size: 0.875rem; color: var(--muted); line-height: 1.65; }
+    .card-tag {
+      display: inline-block;
+      margin-top: 0.75rem;
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      padding: 0.15rem 0.6rem;
+      border-radius: 999px;
+      border: 1px solid rgba(99,120,220,0.3);
+      color: var(--accent2);
+    }
+    .card-tag.green { border-color: rgba(52,211,153,0.3); color: var(--green); }
+    .card-tag.yellow { border-color: rgba(251,191,36,0.3); color: var(--yellow); }
+
+    /* ── Code tabs ── */
+    .code-section { background: var(--bg2); }
+    .tabs {
+      display: flex;
+      gap: 0;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 0;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .tab-btn {
+      padding: 0.65rem 1.25rem;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--muted);
+      background: none;
+      border: none;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+    .tab-btn.active { color: var(--accent3); border-bottom-color: var(--accent); }
+    .tab-btn:hover:not(.active) { color: var(--text); }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+    .code-box {
+      background: #0d1117;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .code-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.6rem 1rem;
+      background: rgba(255,255,255,0.03);
+      border-bottom: 1px solid var(--border);
+      font-size: 0.75rem;
+      color: var(--muted);
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .code-dots { display: flex; gap: 0.4rem; }
+    .dot { width: 10px; height: 10px; border-radius: 50%; }
+    .dot.r { background: #ff5f57; }
+    .dot.y { background: #febc2e; }
+    .dot.g { background: #28c840; }
+    pre[class*="language-"] {
+      margin: 0 !important;
+      border-radius: 0 !important;
+      font-family: 'JetBrains Mono', monospace !important;
+      font-size: 0.82rem !important;
+      line-height: 1.7 !important;
+      max-height: 420px;
+      overflow-y: auto;
+    }
+
+    /* ── Comparison table ── */
+    .table-wrap { overflow-x: auto; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.875rem;
+    }
+    thead tr { border-bottom: 1px solid var(--border); }
+    th {
+      padding: 0.75rem 1.1rem;
+      text-align: left;
+      font-weight: 600;
+      color: var(--muted);
+      font-size: 0.78rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    td {
+      padding: 0.75rem 1.1rem;
+      border-bottom: 1px solid rgba(99,120,220,0.07);
+      color: var(--text);
+    }
+    tr:hover td { background: rgba(99,120,220,0.04); }
+    .check { color: var(--green); font-weight: 700; }
+    .cross { color: var(--muted); }
+
+    /* ── Roadmap ── */
+    .roadmap { display: flex; flex-direction: column; gap: 0; }
+    .roadmap-item {
+      display: flex;
+      gap: 1.5rem;
+      align-items: flex-start;
+      padding: 1.25rem 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .roadmap-item:last-child { border-bottom: none; }
+    .roadmap-ver {
+      min-width: 52px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--accent2);
+      padding-top: 0.1rem;
+    }
+    .roadmap-badge {
+      min-width: 84px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.15rem 0.7rem;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+    }
+    .badge-done  { background: rgba(52,211,153,0.12); color: var(--green);  border: 1px solid rgba(52,211,153,0.3); }
+    .badge-plan  { background: rgba(251,191,36,0.1);  color: var(--yellow); border: 1px solid rgba(251,191,36,0.3); }
+    .roadmap-desc { font-size: 0.875rem; color: var(--muted); line-height: 1.6; }
+    .roadmap-desc strong { color: var(--text); }
+
+    /* ── CLI preview ── */
+    .terminal {
+      background: #080c14;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.82rem;
+    }
+    .terminal-bar {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.65rem 1rem;
+      background: rgba(255,255,255,0.03);
+      border-bottom: 1px solid var(--border);
+    }
+    .terminal-body { padding: 1.25rem 1.25rem; line-height: 1.9; }
+    .t-prompt { color: var(--green); }
+    .t-cmd    { color: var(--accent3); }
+    .t-out    { color: var(--muted); }
+    .t-gap-c  { color: var(--red); }
+    .t-gap-w  { color: var(--yellow); }
+    .t-gap-ok { color: var(--green); }
+    .t-hi     { color: #fff; }
+
+    /* ── Footer ── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 2.5rem 1.5rem;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      background: var(--bg2);
+    }
+    footer .foot-left { font-size: 0.875rem; color: var(--muted); }
+    footer .foot-links { display: flex; gap: 1.5rem; }
+    footer .foot-links a {
+      font-size: 0.8rem;
+      color: var(--muted);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+    footer .foot-links a:hover { color: var(--text); }
+
+    /* ── Gradient divider ── */
+    .grad-div {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+      opacity: 0.4;
+    }
+
+    /* ── Providers row ── */
+    .providers {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      align-items: center;
+      margin-top: 1.5rem;
+    }
+    .provider-chip {
+      padding: 0.4rem 1rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--bg3);
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 700px) {
+      nav { padding: 0 1rem; }
+      .nav-links { display: none; }
+      .hero-actions { flex-direction: column; align-items: center; }
+      .stats-bar { gap: 1.5rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="#" class="nav-logo">🔁 TraceOps</a>
+  <ul class="nav-links">
+    <li><a href="#features">Features</a></li>
+    <li><a href="#code">Examples</a></li>
+    <li><a href="#compare">vs VCR.py</a></li>
+    <li><a href="#cli">CLI</a></li>
+    <li><a href="#roadmap">Roadmap</a></li>
+  </ul>
+  <div class="nav-cta">
+    <a href="https://github.com/ioteverythin/TraceOps" class="btn btn-ghost" target="_blank">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+      GitHub
+    </a>
+    <a href="https://pypi.org/project/traceops/" class="btn btn-primary" target="_blank">
+      Install → PyPI
+    </a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-glow"></div>
+  <span class="hero-badge">🆕 v0.6.0 — Behavioral Analysis + GitHub PR Integration</span>
+  <h1>Record. Replay.<br/>Understand your agents.</h1>
+  <p>TraceOps intercepts every LLM call, tool invocation, and agent decision — then replays them deterministically. No more flaky agent tests.</p>
+  <div class="hero-actions">
+    <a href="https://github.com/ioteverythin/TraceOps" class="btn btn-primary" target="_blank">View on GitHub →</a>
+    <a href="#code" class="btn btn-ghost">See Examples</a>
+  </div>
+  <div class="install-box">
+    <span>$</span>
+    <code id="install-cmd">pip install traceops</code>
+    <button class="copy-btn" onclick="copyInstall()" title="Copy">⎘</button>
+  </div>
+</section>
+
+<!-- STATS -->
+<div class="stats-bar">
+  <div class="stat"><div class="stat-value">714</div><div class="stat-label">Tests Passing</div></div>
+  <div class="stat"><div class="stat-value">6</div><div class="stat-label">LLM Providers</div></div>
+  <div class="stat"><div class="stat-value">v0.6</div><div class="stat-label">Current Version</div></div>
+  <div class="stat"><div class="stat-value">MIT</div><div class="stat-label">License</div></div>
+  <div class="stat"><div class="stat-value">0</div><div class="stat-label">External Deps for Core</div></div>
+</div>
+
+<!-- FEATURES -->
+<section id="features">
+  <div class="container">
+    <span class="section-label">What's included</span>
+    <h2>Everything your agent CI needs</h2>
+    <p class="section-sub">From SDK-level recording to AGENTS.md generation — one package, zero configuration.</p>
+
+    <div class="cards">
+      <div class="card">
+        <div class="card-icon">🎙️</div>
+        <h3>SDK-Level Recording</h3>
+        <p>Intercepts <code>openai.chat.completions.create</code>, <code>anthropic.messages.create</code>, tool calls, and agent decisions — not raw HTTP. Understands semantics, not just bytes.</p>
+        <span class="card-tag">v0.1</span>
+      </div>
+      <div class="card">
+        <div class="card-icon">▶️</div>
+        <h3>Deterministic Replay</h3>
+        <p>Replay recorded traces with zero API calls and millisecond execution. Fully deterministic — perfect for CI pipelines and cost-free regression suites.</p>
+        <span class="card-tag">v0.1</span>
+      </div>
+      <div class="card">
+        <div class="card-icon">🔍</div>
+        <h3>Semantic Diff Engine</h3>
+        <p>Compare traces at the trajectory level — detect model changes, new tools, extra LLM calls, and more. Binary match/no-match isn't enough for agents.</p>
+        <span class="card-tag">v0.1</span>
+      </div>
+      <div class="card">
+        <div class="card-icon">🧪</div>
+        <h3>pytest Plugin</h3>
+        <p>Use the <code>cassette</code> fixture — auto-records on first run, replays on subsequent runs. Supports <code>--record</code> and <code>--record-mode=all</code>.</p>
+        <span class="card-tag">v0.1</span>
+      </div>
+      <div class="card">
+        <div class="card-icon">💸</div>
+        <h3>Budget Assertions</h3>
+        <p>Guard against cost overruns, token bloat, and infinite tool loops with <code>assert_cost_under</code>, <code>assert_no_loops</code>, and the <code>@budget</code> pytest marker.</p>
+        <span class="card-tag">v0.2</span>
+      </div>
+      <div class="card">
+        <div class="card-icon">⏱️</div>
+        <h3>Time-Travel Debugger</h3>
+        <p>Step forward and backward through a recorded trace. Inspect prompts, responses, tool I/O, and costs at each step from the terminal.</p>
+        <span class="card-tag">v0.2</span>
+      </div>
+      <div class="card">
+        <div class="card-icon">📊</div>
+        <h3>HTML Reports</h3>
+        <p>Generate shareable single-file HTML reports with dark theme, stats grid, trajectory visualization, and expandable event panels.</p>
+        <span class="card-tag">v0.2</span>
+      </div>
+      <div class="card">
+        <div class="card-icon">🔗</div>
+        <h3>Async &amp; Streaming</h3>
+        <p>First-class support for <code>async/await</code> workflows and streaming responses. Streaming calls are assembled into complete cassettes and replayed as realistic chunks.</p>
+        <span class="card-tag">v0.2</span>
+      </div>
+      <div class="card">
+        <div class="card-icon">🧠</div>
+        <h3>LangGraph &amp; CrewAI</h3>
+        <p>Intercept Pregel graph execution, LangChain <code>BaseChatModel</code> calls, and CrewAI task pipelines. Capture graph-level and framework-level events.</p>
+        <span class="card-tag">v0.3</span>
+      </div>
+      <div class="card">
+        <div class="card-icon">📚</div>
+        <h3>RAG Recording &amp; Scoring</h3>
+        <p>Record retrieval queries, chunks, and vector store events. Assert on chunk count, relevance scores, and retrieval drift. Integrates with ragas and DeepEval.</p>
+        <span class="card-tag green">v0.5</span>
+      </div>
+      <div class="card">
+        <div class="card-icon">🔬</div>
+        <h3>Semantic Regression</h3>
+        <p>Catch meaning-level regressions that exact-string diffs miss. <code>assert_semantic_similarity</code> fails if any response drifts too far from the recorded baseline.</p>
+        <span class="card-tag green">v0.5</span>
+      </div>
+      <div class="card">
+        <div class="card-icon">🔌</div>
+        <h3>MCP Tool Recording</h3>
+        <p>Record Model Context Protocol server connections, tool calls, and results as first-class trace events. Full replay support for MCP-powered agents.</p>
+        <span class="card-tag green">v0.5</span>
+      </div>
+      <div class="card">
+        <div class="card-icon">🎓</div>
+        <h3>Fine-Tune Export</h3>
+        <p>Export recorded traces as OpenAI or Anthropic fine-tuning JSONL datasets directly from your cassette library — turn production runs into training data.</p>
+        <span class="card-tag green">v0.5</span>
+      </div>
+      <div class="card">
+        <div class="card-icon">📈</div>
+        <h3>Pattern Detector</h3>
+        <p>Analyze tool n-gram heatmaps, model usage stats, and error rates across an entire cassette directory. Surface how your agent actually navigates tasks.</p>
+        <span class="card-tag yellow">v0.6 NEW</span>
+      </div>
+      <div class="card">
+        <div class="card-icon">🔴</div>
+        <h3>Gap Analyzer</h3>
+        <p>Compare agent traces to golden baselines. Auto-detects token inflation, cost inflation, missing tools, model mismatch, error rate spikes. CI-exits with code 1 on critical gaps.</p>
+        <span class="card-tag yellow">v0.6 NEW</span>
+      </div>
+      <div class="card">
+        <div class="card-icon">📝</div>
+        <h3>AGENTS.md Generator</h3>
+        <p>Auto-generate AGENTS.md / CLAUDE.md style steering guidance from gap or pattern reports. Give your next agent run better instructions based on observed failures.</p>
+        <span class="card-tag yellow">v0.6 NEW</span>
+      </div>
+      <div class="card">
+        <div class="card-icon">🐙</div>
+        <h3>GitHub PR Fetcher</h3>
+        <p>Fetch merged GitHub PRs as human-validated golden baselines via the REST API — no CLI required, pure stdlib. Reverse-engineer plain-English task prompts from diffs.</p>
+        <span class="card-tag yellow">v0.6 NEW</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="grad-div"></div>
+
+<!-- CODE EXAMPLES -->
+<section id="code" class="code-section">
+  <div class="container">
+    <span class="section-label">Code examples</span>
+    <h2>From one decorator to full analysis</h2>
+    <p class="section-sub">Copy-paste examples for the most common workflows.</p>
+
+    <div class="code-box">
+      <div class="tabs">
+        <button class="tab-btn active" onclick="showTab('record')">Record &amp; Replay</button>
+        <button class="tab-btn" onclick="showTab('pytest')">pytest Plugin</button>
+        <button class="tab-btn" onclick="showTab('budget')">Budget Assertions</button>
+        <button class="tab-btn" onclick="showTab('rag')">RAG</button>
+        <button class="tab-btn" onclick="showTab('patterns')">Pattern Analysis</button>
+        <button class="tab-btn" onclick="showTab('gaps')">Gap Analysis</button>
+        <button class="tab-btn" onclick="showTab('pr')">GitHub PR</button>
+        <button class="tab-btn" onclick="showTab('cli2')">CLI</button>
+      </div>
+
+      <div id="tab-record" class="tab-panel active">
+        <div class="code-header"><div class="code-dots"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div></div><span>record_replay.py</span></div>
+        <pre><code class="language-python">from trace_ops import Recorder, Replayer, load_cassette
+
+# ── Record ──────────────────────────────────────────────
+with Recorder(save_to="cassettes/test_math.yaml") as rec:
+    response = client.chat.completions.create(
+        model="gpt-4o",
+        messages=[{"role": "user", "content": "What is 2+2?"}],
+    )
+    print(response.choices[0].message.content)
+
+print(f"Recorded {rec.trace.total_llm_calls} LLM calls")
+print(f"Cost: ${rec.trace.total_cost_usd:.4f}")
+print(f"Tokens: {rec.trace.total_tokens}")
+
+# ── Replay — zero API calls, millisecond execution ──────
+with Replayer("cassettes/test_math.yaml"):
+    response = client.chat.completions.create(
+        model="gpt-4o",
+        messages=[{"role": "user", "content": "What is 2+2?"}],
+    )
+    assert response.choices[0].message.content == "4"   # deterministic!
+
+# ── Async & Streaming ───────────────────────────────────
+async with Recorder(save_to="cassettes/stream.yaml"):
+    async for chunk in await client.chat.completions.create(
+        model="gpt-4o", messages=[...], stream=True
+    ):
+        print(chunk.choices[0].delta.content or "", end="")</code></pre>
+      </div>
+
+      <div id="tab-pytest" class="tab-panel">
+        <div class="code-header"><div class="code-dots"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div></div><span>test_agent.py</span></div>
+        <pre><code class="language-python">from trace_ops import assert_trace_unchanged, load_cassette
+
+# ── cassette fixture: auto-records on first run, replays after ──
+def test_summarize(cassette):
+    result = agent.run("Summarize the quarterly report")
+    assert "revenue" in result.lower()
+
+# ── Manual regression check ──────────────────────────────
+def test_regression():
+    baseline = load_cassette("cassettes/v1.yaml")
+    with Recorder() as rec:
+        agent.run("Summarize the quarterly report")
+    assert_trace_unchanged(baseline, rec.trace)
+
+# ── Diff and inspect ────────────────────────────────────
+from trace_ops import diff_traces
+
+def test_no_new_tools():
+    old = load_cassette("cassettes/v1.yaml")
+    new = load_cassette("cassettes/v2.yaml")
+    diff = diff_traces(old, new)
+    assert not diff.new_tools_used, f"Unexpected tools: {diff.new_tools_used}"</code></pre>
+      </div>
+
+      <div id="tab-budget" class="tab-panel">
+        <div class="code-header"><div class="code-dots"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div></div><span>test_budget.py</span></div>
+        <pre><code class="language-python">import pytest
+from trace_ops import Recorder
+from trace_ops.assertions import (
+    assert_cost_under,
+    assert_tokens_under,
+    assert_max_llm_calls,
+    assert_no_loops,
+)
+
+def test_budget_manual():
+    with Recorder() as rec:
+        agent.run("Analyze this document")
+
+    assert_cost_under(rec.trace, max_usd=0.50)
+    assert_tokens_under(rec.trace, max_tokens=10_000)
+    assert_max_llm_calls(rec.trace, max_calls=5)
+    assert_no_loops(rec.trace, max_consecutive_same_tool=3)
+
+# ── pytest marker shorthand ──────────────────────────────
+@pytest.mark.budget(max_usd=0.50, max_tokens=10_000, max_llm_calls=5)
+def test_agent_budget(cassette):
+    agent.run("Analyze this document")</code></pre>
+      </div>
+
+      <div id="tab-rag" class="tab-panel">
+        <div class="code-header"><div class="code-dots"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div></div><span>test_rag.py</span></div>
+        <pre><code class="language-python">from trace_ops import Recorder, load_cassette
+from trace_ops.rag import (
+    assert_chunk_count,
+    assert_min_relevance_score,
+    assert_no_retrieval_drift,
+    RagasScorer,
+)
+
+def test_rag_pipeline():
+    with Recorder(save_to="cassettes/rag_test.yaml") as rec:
+        answer = rag_pipeline.run("What is the refund policy?")
+
+    # Assert retrieval quality
+    assert_chunk_count(rec.trace, min_chunks=3)
+    assert_min_relevance_score(rec.trace, min_score=0.75)
+
+def test_no_retrieval_drift():
+    baseline = load_cassette("cassettes/rag_baseline.yaml")
+    with Recorder() as rec:
+        rag_pipeline.run("What is the refund policy?")
+    assert_no_retrieval_drift(baseline, rec.trace, tolerance=0.1)
+
+def test_ragas_scores():
+    with Recorder() as rec:
+        rag_pipeline.run("Explain the pricing tiers")
+    scores = RagasScorer().score(rec.trace)
+    assert scores["faithfulness"] > 0.85
+    assert scores["answer_relevancy"] > 0.80</code></pre>
+      </div>
+
+      <div id="tab-patterns" class="tab-panel">
+        <div class="code-header"><div class="code-dots"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div></div><span>pattern_analysis.py</span></div>
+        <pre><code class="language-python">from trace_ops.analysis import PatternDetector, SkillsGenerator
+
+# Analyze all cassettes in a directory
+detector = PatternDetector(window_size=3, top_n=10)
+report = detector.analyze_dir("cassettes/production/")
+
+print(report.summary())
+# Analyzed 47 traces | Avg: 3.2 LLM calls, 1,450 tokens, $0.012/run
+
+print("\nTop tool sequences:")
+for seq in report.top_tool_sequences:
+    print(f"  {' → '.join(seq.sequence):<35} ×{seq.count}")
+# search → read_file → write_file          ×31
+# search → read_file                       ×9
+
+print("\nModel usage:")
+for m in report.model_usage:
+    print(f"  {m.model}: {m.call_count} calls, {m.total_tokens} tokens")
+
+# Auto-generate a pattern summary doc
+gen = SkillsGenerator()
+gen.from_pattern_report(report, output_path="PATTERNS.md")</code></pre>
+      </div>
+
+      <div id="tab-gaps" class="tab-panel">
+        <div class="code-header"><div class="code-dots"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div></div><span>gap_analysis.py</span></div>
+        <pre><code class="language-python">from trace_ops import load_cassette
+from trace_ops.analysis import GapAnalyzer, SkillsGenerator
+
+# Load golden (human-validated) and agent trace sets
+golden = [(p.name, load_cassette(p)) for p in Path("golden/").glob("*.yaml")]
+agent  = [(p.name, load_cassette(p)) for p in Path("runs/").glob("*.yaml")]
+
+report = GapAnalyzer().compare(golden, agent)
+print(report.summary())
+# Found 3 behavioral gap(s): 1 critical, 2 warnings
+
+for gap in report.gaps:
+    icon = {"critical": "🔴", "warning": "🟡", "info": "🔵"}[gap.severity]
+    print(f"{icon} [{gap.severity.upper()}] {gap.description}")
+    if gap.golden_value is not None:
+        print(f"   Golden: {gap.golden_value}  |  Agent: {gap.agent_value}")
+
+# Gaps detected automatically:
+# token_inflation, cost_inflation, missing_tool, extra_tool,
+# model_mismatch, error_rate, llm_call_inflation
+
+# Generate AGENTS.md steering guidance from the gaps
+gen = SkillsGenerator()
+gen.from_gap_report(report, output_path="AGENTS.md")
+
+# CI-friendly: exits with code 1 if any critical gaps found</code></pre>
+      </div>
+
+      <div id="tab-pr" class="tab-panel">
+        <div class="code-header"><div class="code-dots"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div></div><span>pr_fetcher.py</span></div>
+        <pre><code class="language-python">from trace_ops.github import PRFetcher
+
+# Fetch a single PR as a golden baseline
+# Uses GITHUB_TOKEN env var automatically, or pass token=...
+fetcher = PRFetcher()
+
+pr = fetcher.fetch("https://github.com/owner/repo/pull/123")
+print(pr.title)             # "Fix: agent skips write step on empty search"
+print(pr.author)            # "alice"
+print(pr.total_additions)   # 33
+print(pr.total_deletions)   # 4
+
+# Reverse-engineer a plain-English task from the PR diff
+print(pr.extract_task_prompt())
+# Task: Fix: agent skips write step on empty search
+# Context: Closes #122 — The agent was silently skipping...
+# Files changed: agent/pipeline.py, tests/test_pipeline.py
+# Changes: +33 -4 lines
+
+# Fetch recent merged PRs in bulk as golden baselines
+recent = fetcher.fetch_recent("https://github.com/owner/repo", limit=10)
+print(f"Fetched {len(recent)} golden PRs")</code></pre>
+      </div>
+
+      <div id="tab-cli2" class="tab-panel">
+        <div class="code-header"><div class="code-dots"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div></div><span>terminal</span></div>
+        <pre><code class="language-bash"># Inspect / compare cassettes
+traceops inspect cassettes/test.yaml
+traceops diff cassettes/old.yaml cassettes/new.yaml
+
+# Time-travel debugger
+traceops debug cassettes/test.yaml
+traceops debug cassettes/v1.yaml --compare cassettes/v2.yaml
+
+# Cassette management
+traceops ls cassettes/
+traceops stats cassettes/
+traceops prune cassettes/ --older-than 30d --dry-run
+
+# HTML report
+traceops report cassettes/test.yaml -o report.html
+
+# ── v0.6 NEW ────────────────────────────────────────────
+# Pattern analysis across all cassettes
+traceops analyze cassettes/ --window 3 --skills AGENTS.md
+
+# Gap analysis vs golden baseline (exits 1 on critical gaps)
+traceops gap-report golden/ runs/ --skills AGENTS.md
+
+# Fetch a GitHub PR as golden baseline
+traceops pr-diff https://github.com/owner/repo/pull/123 --task</code></pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="grad-div"></div>
+
+<!-- COMPARE -->
+<section id="compare">
+  <div class="container">
+    <span class="section-label">Comparison</span>
+    <h2>TraceOps vs VCR.py</h2>
+    <p class="section-sub">HTTP-level recording was never designed for agents. TraceOps works at the layer that matters.</p>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Capability</th>
+            <th>VCR.py / Cagent</th>
+            <th>TraceOps</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Records at</td><td class="cross">HTTP layer</td><td class="check">SDK layer</td></tr>
+          <tr><td>Understands agent semantics</td><td class="cross">❌</td><td class="check">✅ LLM calls, tools, decisions</td></tr>
+          <tr><td>Trajectory tracking</td><td class="cross">❌</td><td class="check">✅</td></tr>
+          <tr><td>Semantic diff</td><td class="cross">Binary match/no-match</td><td class="check">✅ "model changed", "new tool"</td></tr>
+          <tr><td>Cost tracking</td><td class="cross">❌</td><td class="check">✅ per-call tokens + USD</td></tr>
+          <tr><td>Async + Streaming</td><td class="cross">Varies</td><td class="check">✅ Native</td></tr>
+          <tr><td>RAG recording</td><td class="cross">❌</td><td class="check">✅ Chunks, scores, drift</td></tr>
+          <tr><td>MCP tool calls</td><td class="cross">❌</td><td class="check">✅</td></tr>
+          <tr><td>Behavioral analysis</td><td class="cross">❌</td><td class="check">✅ PatternDetector, GapAnalyzer</td></tr>
+          <tr><td>AGENTS.md generation</td><td class="cross">❌</td><td class="check">✅ SkillsGenerator</td></tr>
+          <tr><td>Fine-tune export</td><td class="cross">❌</td><td class="check">✅ OpenAI + Anthropic JSONL</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <br/>
+    <span class="section-label" style="margin-top:1.5rem; display:block;">Supported providers</span>
+    <div class="providers">
+      <div class="provider-chip">🟢 OpenAI</div>
+      <div class="provider-chip">🟠 Anthropic</div>
+      <div class="provider-chip">🔵 LiteLLM</div>
+      <div class="provider-chip">🦜 LangChain</div>
+      <div class="provider-chip">🕸️ LangGraph</div>
+      <div class="provider-chip">⚙️ CrewAI</div>
+      <div class="provider-chip">🔌 MCP</div>
+      <div class="provider-chip">🛠️ Any (manual)</div>
+    </div>
+  </div>
+</section>
+
+<div class="grad-div"></div>
+
+<!-- CLI -->
+<section id="cli">
+  <div class="container">
+    <span class="section-label">CLI Preview</span>
+    <h2>One command away</h2>
+    <p class="section-sub">Inspect cassettes, run gap analysis, generate guidance — all from the terminal.</p>
+    <div class="terminal">
+      <div class="terminal-bar">
+        <div class="code-dots"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div></div>
+        <span style="font-size:0.78rem; color: var(--muted); margin-left:0.5rem;">bash</span>
+      </div>
+      <div class="terminal-body">
+        <div><span class="t-prompt">❯</span> <span class="t-cmd">traceops analyze cassettes/ --window 3 --skills AGENTS.md</span></div>
+        <div class="t-out">Analyzing 47 cassettes in cassettes/ ...</div>
+        <div class="t-out"></div>
+        <div class="t-out"><span class="t-hi">Pattern Report</span> — 47 traces, 284 total events</div>
+        <div class="t-out">Avg per trace: 3.2 LLM calls · 1,450 tokens · $0.012</div>
+        <div class="t-out"></div>
+        <div class="t-out">Top tool sequences (window=3):</div>
+        <div class="t-out">  search → read_file → write_file          ×31</div>
+        <div class="t-out">  search → read_file                       ×9</div>
+        <div class="t-out">  list_dir → read_file → write_file        ×4</div>
+        <div class="t-out"></div>
+        <div class="t-out">✅  AGENTS.md written to AGENTS.md</div>
+        <div style="margin-top:0.75rem;"></div>
+        <div><span class="t-prompt">❯</span> <span class="t-cmd">traceops gap-report golden/ runs/ --skills AGENTS.md</span></div>
+        <div class="t-out">Comparing 10 golden vs 10 agent traces ...</div>
+        <div class="t-out"></div>
+        <div class="t-gap-c">🔴 [CRITICAL] Agent uses 4.2× more tokens than golden baseline</div>
+        <div class="t-out">   Golden avg: 430 tokens  |  Agent avg: 1,820 tokens</div>
+        <div class="t-gap-w">🟡 [WARNING]  Agent never uses 'write_file' (present in 80% of golden)</div>
+        <div class="t-gap-w">🟡 [WARNING]  Error rate 33% vs golden 0%</div>
+        <div class="t-out"></div>
+        <div class="t-out">✅  AGENTS.md written.</div>
+        <div class="t-gap-c">Exit code: 1 (critical gaps found)</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="grad-div"></div>
+
+<!-- ROADMAP -->
+<section id="roadmap">
+  <div class="container">
+    <span class="section-label">Roadmap</span>
+    <h2>Where we're headed</h2>
+    <p class="section-sub">Every version ships tested, documented, and published to PyPI.</p>
+    <div class="roadmap">
+      <div class="roadmap-item">
+        <div class="roadmap-ver">v0.1</div>
+        <span class="roadmap-badge badge-done">✅ Released</span>
+        <div class="roadmap-desc"><strong>Foundation</strong> — Record/replay for OpenAI, Anthropic, LiteLLM. pytest plugin, diff engine, CLI.</div>
+      </div>
+      <div class="roadmap-item">
+        <div class="roadmap-ver">v0.2</div>
+        <span class="roadmap-badge badge-done">✅ Released</span>
+        <div class="roadmap-desc"><strong>DX &amp; Testing</strong> — Async + streaming, budget assertions, time-travel debugger, HTML reports, GitHub Action.</div>
+      </div>
+      <div class="roadmap-item">
+        <div class="roadmap-ver">v0.3</div>
+        <span class="roadmap-badge badge-done">✅ Released</span>
+        <div class="roadmap-desc"><strong>Frameworks</strong> — LangGraph Pregel interceptor, Anthropic tool_use, CrewAI, LangChain integration tests.</div>
+      </div>
+      <div class="roadmap-item">
+        <div class="roadmap-ver">v0.4</div>
+        <span class="roadmap-badge badge-done">✅ Released</span>
+        <div class="roadmap-desc"><strong>Normalization</strong> — Provider-agnostic response normalization, cost dashboard, expanded reporters.</div>
+      </div>
+      <div class="roadmap-item">
+        <div class="roadmap-ver">v0.5</div>
+        <span class="roadmap-badge badge-done">✅ Released</span>
+        <div class="roadmap-desc"><strong>RAG + MCP + Export</strong> — RAG recording &amp; scoring (ragas, DeepEval), semantic regression, MCP tool calls, fine-tune JSONL export.</div>
+      </div>
+      <div class="roadmap-item">
+        <div class="roadmap-ver">v0.6</div>
+        <span class="roadmap-badge badge-done">✅ Released</span>
+        <div class="roadmap-desc"><strong>Behavioral Analysis</strong> — PatternDetector, GapAnalyzer, SkillsGenerator, GitHub PR integration. Inspired by agent-pr-replay.</div>
+      </div>
+      <div class="roadmap-item">
+        <div class="roadmap-ver">v0.7</div>
+        <span class="roadmap-badge badge-plan">🔜 Planned</span>
+        <div class="roadmap-desc"><strong>Visual Tools</strong> — VS Code extension with trace visualization, live replay dashboard, web UI for cassette inspection.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="foot-left">
+    🔁 <strong style="color:var(--text)">TraceOps</strong> &nbsp;·&nbsp; MIT License &nbsp;·&nbsp; Built by Joshua
+  </div>
+  <div class="foot-links">
+    <a href="https://github.com/ioteverythin/TraceOps" target="_blank">GitHub</a>
+    <a href="https://pypi.org/project/traceops/" target="_blank">PyPI</a>
+    <a href="https://github.com/ioteverythin/TraceOps/issues" target="_blank">Issues</a>
+    <a href="https://github.com/ioteverythin/TraceOps/blob/main/README.md" target="_blank">Docs</a>
+  </div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+<script>
+  function showTab(name) {
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-' + name).classList.add('active');
+    event.target.classList.add('active');
+  }
+
+  function copyInstall() {
+    navigator.clipboard.writeText('pip install traceops').then(() => {
+      const btn = document.querySelector('.copy-btn');
+      btn.textContent = '✓';
+      setTimeout(() => btn.textContent = '⎘', 1800);
+    });
+  }
+</script>
+</body>
+</html>
