@@ -7,6 +7,8 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Tests](https://img.shields.io/badge/tests-714%20passed-brightgreen)](https://github.com/ioteverythin/TraceOps)
 
+![TraceOps](traceops.png)
+
 TraceOps brings the VCR.py pattern to LLM agents — but at the **SDK level**, not the HTTP level. It intercepts `openai.chat.completions.create`, `anthropic.messages.create`, tool calls, and agent decisions, recording the full execution trace. On replay, it injects recorded responses — **zero API calls, millisecond execution, fully deterministic**. It also includes behavioral analysis tools inspired by [agent-pr-replay](https://github.com/sshh12/agent-pr-replay) to surface patterns, gaps, and guidance across entire cassette libraries.
 
 ## Why not just use VCR.py?
