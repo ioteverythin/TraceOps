@@ -14,7 +14,7 @@ from pathlib import Path
 from .gap_analyzer import GapReport
 from .pattern_detector import PatternReport
 
-_REPO_URL = "https://github.com/ioteverythin/project_dragon"
+_REPO_URL = "https://github.com/ioteverythin/TraceOps"
 
 
 class SkillsGenerator:

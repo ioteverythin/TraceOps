@@ -96,10 +96,10 @@ traceops = "trace_ops.pytest_plugin"
 traceops = "trace_ops.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/ioteverythin/project_dragon"
-Repository = "https://github.com/ioteverythin/project_dragon"
-Issues = "https://github.com/ioteverythin/project_dragon/issues"
-Changelog = "https://github.com/ioteverythin/project_dragon/blob/main/CHANGELOG.md"
+Homepage = "https://github.com/ioteverythin/TraceOps"
+Repository = "https://github.com/ioteverythin/TraceOps"
+Issues = "https://github.com/ioteverythin/TraceOps/issues"
+Changelog = "https://github.com/ioteverythin/TraceOps/blob/main/CHANGELOG.md"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/trace_ops"]
