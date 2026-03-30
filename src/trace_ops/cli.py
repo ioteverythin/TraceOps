@@ -806,5 +806,227 @@ def export_finetune(cassette_dir: str, fmt: str, output: str, system: str | None
     console.print(f"[green]Fine-tune data exported to {output}.[/green]")
 
 
+# ── v0.6.0 Behavioral Analysis commands (inspired by agent-pr-replay) ──────
+
+
+@main.command("analyze")
+@click.argument("cassette_dir")
+@click.option("--window", default=3, show_default=True, help="Tool-sequence window size for n-gram detection.")
+@click.option("--top", default=10, show_default=True, help="Top N sequences to show.")
+@click.option("-o", "--output", default=None, help="Write PatternReport as JSON to this file.")
+@click.option("--skills", "gen_skills", default=None, help="Also write a AGENTS.md guidance file to this path.")
+def analyze(cassette_dir: str, window: int, top: int, output: str | None, gen_skills: str | None):
+    """Analyze behavioral patterns across a directory of cassettes.
+
+    Finds recurring tool sequences, model usage, error patterns, and
+    cost/token averages — inspired by agent-pr-replay's stats module.
+
+    Example:
+
+        traceops analyze cassettes/ --skills AGENTS.md
+    """
+    from trace_ops.analysis import PatternDetector, SkillsGenerator
+
+    cassette_path = Path(cassette_dir)
+    if not cassette_path.exists():
+        console.print(f"[red]Directory not found: {cassette_dir}[/red]")
+        sys.exit(1)
+
+    with console.status("[bold green]Loading cassettes..."):
+        detector = PatternDetector(window_size=window, top_n=top)
+        report = detector.analyze_dir(cassette_path)
+
+    if report.cassette_count == 0:
+        console.print(f"[yellow]No cassettes found in {cassette_dir}[/yellow]")
+        return
+
+    console.print(Panel(
+        f"[bold]Cassettes:[/bold] {report.cassette_count}\n"
+        f"[bold]Total events:[/bold] {report.total_events}\n"
+        f"[bold]Avg LLM calls:[/bold] {report.avg_llm_calls:.1f}\n"
+        f"[bold]Avg tokens:[/bold] {report.avg_tokens:.0f}\n"
+        f"[bold]Avg cost:[/bold] ${report.avg_cost_usd:.5f}",
+        title=f"Pattern Analysis: {cassette_dir}",
+    ))
+
+    if report.top_tool_sequences:
+        console.print("\n[bold]Top Tool Sequences:[/bold]")
+        for i, seq in enumerate(report.top_tool_sequences[:5], 1):
+            arrow = " → ".join(seq.sequence)
+            console.print(f"  {i}. {arrow}  ({seq.count}×)")
+
+    if report.model_usage:
+        console.print("\n[bold]Model Usage:[/bold]")
+        for m in report.model_usage[:5]:
+            console.print(
+                f"  {m.model}: {m.call_count} calls, "
+                f"{m.total_tokens:,} tokens, ${m.total_cost_usd:.5f}"
+            )
+
+    if report.tool_frequency:
+        console.print("\n[bold]Tool Heatmap:[/bold]")
+        max_count = max(report.tool_frequency.values())
+        for tool, count in list(report.tool_frequency.items())[:10]:
+            bar_len = int(count / max_count * 20)
+            bar = "█" * bar_len + "░" * (20 - bar_len)
+            console.print(f"  {tool:20s} {bar} {count}")
+
+    if output:
+        Path(output).write_text(
+            json.dumps(report.to_dict(), indent=2, default=str), encoding="utf-8"
+        )
+        console.print(f"[green]Report saved to {output}[/green]")
+
+    if gen_skills:
+        gen = SkillsGenerator()
+        md = gen.from_pattern_report(report, output_path=Path(gen_skills))
+        console.print(f"[green]Guidance written to {gen_skills}[/green]")
+
+
+@main.command("gap-report")
+@click.argument("golden_dir")
+@click.argument("agent_dir")
+@click.option("-o", "--output", default=None, help="Write GapReport as JSON to this file.")
+@click.option("--skills", "gen_skills", default=None, help="Write AGENTS.md guidance to this path.")
+@click.option("--json", "as_json", is_flag=True, default=False, help="Print report as JSON.")
+def gap_report(golden_dir: str, agent_dir: str, output: str | None, gen_skills: str | None, as_json: bool):
+    """Compare agent traces to golden baselines and show behavioral gaps.
+
+    GOLDEN_DIR: directory of golden / human-validated cassettes.
+    AGENT_DIR:  directory of cassettes recorded by the agent under test.
+
+    Inspired by agent-pr-replay's approach of comparing AI agent output
+    to merged human PRs to find systematic behavioral divergences.
+
+    Example:
+
+        traceops gap-report cassettes/golden/ cassettes/agent/ --skills AGENTS.md
+    """
+    from trace_ops.analysis import GapAnalyzer, SkillsGenerator
+    from trace_ops.cassette import load_cassette
+
+    def _load_dir(d: str) -> list[tuple[str, object]]:
+        p = Path(d)
+        if not p.exists():
+            console.print(f"[red]Directory not found: {d}[/red]")
+            sys.exit(1)
+        pairs = []
+        for path in sorted(p.rglob("*.yaml")):
+            try:
+                pairs.append((path.name, load_cassette(path)))
+            except Exception:
+                pass
+        return pairs
+
+    golden = _load_dir(golden_dir)
+    agent = _load_dir(agent_dir)
+
+    if not golden:
+        console.print(f"[yellow]No golden cassettes found in {golden_dir}[/yellow]")
+        return
+    if not agent:
+        console.print(f"[yellow]No agent cassettes found in {agent_dir}[/yellow]")
+        return
+
+    analyzer = GapAnalyzer()
+    report = analyzer.compare(golden, agent)  # type: ignore[arg-type]
+
+    if as_json:
+        print(json.dumps(report.to_dict(), indent=2, default=str))
+        return
+
+    if not report.gaps:
+        console.print(f"[green]✅ {report.summary()}[/green]")
+    else:
+        severity_colors = {"critical": "red", "warning": "yellow", "info": "blue"}
+        console.print(Panel(
+            report.summary(),
+            title="Behavioral Gap Report",
+            border_style="red" if report.critical_count else "yellow",
+        ))
+        table = Table(title="Gaps Found")
+        table.add_column("Severity", width=10)
+        table.add_column("Category", width=20)
+        table.add_column("Description")
+        table.add_column("Frequency", justify="right", width=10)
+        for gap in report.gaps:
+            color = severity_colors.get(gap.severity, "white")
+            table.add_row(
+                f"[{color}]{gap.severity.upper()}[/{color}]",
+                gap.category,
+                gap.description,
+                f"{gap.frequency*100:.0f}%",
+            )
+        console.print(table)
+
+    if output:
+        Path(output).write_text(
+            json.dumps(report.to_dict(), indent=2, default=str), encoding="utf-8"
+        )
+        console.print(f"[green]Gap report saved to {output}[/green]")
+
+    if gen_skills:
+        gen = SkillsGenerator()
+        gen.from_gap_report(report, output_path=Path(gen_skills))
+        console.print(f"[green]Guidance written to {gen_skills}[/green]")
+
+    if report.critical_count:
+        sys.exit(1)
+
+
+@main.command("pr-diff")
+@click.argument("pr_url")
+@click.option("--token", default=None, envvar="GITHUB_TOKEN", help="GitHub API token (or set GITHUB_TOKEN).")
+@click.option("--task", is_flag=True, default=False, help="Print the reverse-engineered task prompt only.")
+@click.option("--files", is_flag=True, default=False, help="List changed files with +/- stats.")
+def pr_diff(pr_url: str, token: str | None, task: bool, files: bool):
+    """Fetch a GitHub PR diff to use as a golden baseline.
+
+    Inspired by agent-pr-replay's PR fetcher — pulls any public PR and
+    reverse-engineers a task prompt from the diff so you can compare
+    your agent's behaviour against the human solution.
+
+    Example:
+
+        traceops pr-diff https://github.com/owner/repo/pull/42 --task
+    """
+    from trace_ops.github import PRFetcher
+
+    with console.status("[bold green]Fetching PR from GitHub..."):
+        try:
+            fetcher = PRFetcher(token=token)
+            diff = fetcher.fetch(pr_url)
+        except (ValueError, RuntimeError) as exc:
+            console.print(f"[red]{exc}[/red]")
+            sys.exit(1)
+
+    if task:
+        print(diff.extract_task_prompt())
+        return
+
+    console.print(Panel(
+        f"[bold]PR:[/bold] #{diff.pr_number} — {diff.title}\n"
+        f"[bold]Author:[/bold] {diff.author}\n"
+        f"[bold]Merged:[/bold] {diff.merged_at or 'N/A'}\n"
+        f"[bold]Files changed:[/bold] {len(diff.files)}\n"
+        f"[bold]Lines:[/bold] +{diff.total_additions} -{diff.total_deletions}",
+        title=f"GitHub PR: {pr_url}",
+        border_style="cyan",
+    ))
+
+    if files:
+        table = Table(title="Changed Files")
+        table.add_column("File", style="cyan")
+        table.add_column("Status", width=10)
+        table.add_column("+", justify="right", style="green", width=6)
+        table.add_column("-", justify="right", style="red", width=6)
+        for f in diff.files:
+            table.add_row(f.filename, f.status, str(f.additions), str(f.deletions))
+        console.print(table)
+    else:
+        console.print("\n[bold]Task prompt (reverse-engineered):[/bold]")
+        console.print(diff.extract_task_prompt())
+
+
 if __name__ == "__main__":
     main()

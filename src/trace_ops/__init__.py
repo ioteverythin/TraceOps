@@ -91,6 +91,17 @@ try:
 except ImportError:
     _EXPORT_AVAILABLE = False
 
+# Behavioral analysis (always available — no extra deps)
+from trace_ops.analysis import (
+    BehavioralGap,
+    GapAnalyzer,
+    GapReport,
+    PatternDetector,
+    PatternReport,
+    SkillsGenerator,
+)
+from trace_ops.github import PRDiff, PRFetcher
+
 __version__ = "0.5.0"
 
 __all__ = [
@@ -150,4 +161,13 @@ __all__ = [
     # Export / fine-tune
     "to_openai_finetune",
     "to_anthropic_finetune",
-]
+    # Behavioral analysis (v0.6.0, inspired by agent-pr-replay)
+    "PatternDetector",
+    "PatternReport",
+    "GapAnalyzer",
+    "GapReport",
+    "BehavioralGap",
+    "SkillsGenerator",
+    # GitHub integration
+    "PRFetcher",
+    "PRDiff",]

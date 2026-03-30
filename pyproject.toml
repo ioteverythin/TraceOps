@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "project-dragon"
+name = "traceops"
 version = "0.5.0"
 description = "TraceOps — record and replay LLM agent traces for deterministic regression testing — framework-agnostic, pytest-native"
 readme = "README.md"
