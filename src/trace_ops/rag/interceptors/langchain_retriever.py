@@ -54,7 +54,7 @@ def patch_langchain_retriever(recorder: Recorder) -> None:
         )
         return docs
 
-    VectorStoreRetriever._get_relevant_documents = patched  # type: ignore[method-assign]
+    VectorStoreRetriever._get_relevant_documents = patched  # type: ignore[method-assign,assignment]
     recorder._rag_patches.append((
         "langchain_core.vectorstores.VectorStoreRetriever._get_relevant_documents",
         original,

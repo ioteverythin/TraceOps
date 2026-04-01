@@ -540,12 +540,12 @@ def context(cassette_path: str, visual: bool):
     analysis = analyze_context_usage(trace)
 
     console.print(Panel(
-        f"[bold]Total retrievals:[/bold] {analysis.total_retrievals}\n"
-        f"[bold]Total chunks:[/bold] {analysis.total_chunks}\n"
-        f"[bold]Unique chunks used:[/bold] {analysis.unique_chunks_used}\n"
-        f"[bold]Context utilisation:[/bold] {analysis.context_utilization:.1%}\n"
-        f"[bold]Avg chunks / query:[/bold] {analysis.avg_chunks_per_query:.1f}\n"
-        f"[bold]Redundant chunks:[/bold] {analysis.redundant_chunks}",
+        f"[bold]Context percent:[/bold] {analysis.context_percent:.1%}\n"
+        f"[bold]Retrieved context tokens:[/bold] {analysis.retrieved_context_tokens}\n"
+        f"[bold]Total input tokens:[/bold] {analysis.total_input_tokens}\n"
+        f"[bold]System prompt tokens:[/bold] {analysis.system_prompt_tokens}\n"
+        f"[bold]User query tokens:[/bold] {analysis.user_query_tokens}\n"
+        f"[bold]Unused chunk tokens:[/bold] {analysis.unused_chunk_tokens}",
         title=f"Context Analysis: {cassette_path}",
     ))
 
@@ -558,9 +558,9 @@ def context(cassette_path: str, visual: bool):
         for cu in analysis.chunk_usages[:20]:
             table.add_row(
                 cu.chunk_id[:20],
-                cu.content_preview[:60],
-                str(cu.query_count),
-                f"{cu.avg_score:.2f}",
+                cu.text_preview[:60],
+                "1" if cu.used_in_response else "0",
+                f"{cu.relevance_score:.2f}",
             )
         console.print(table)
 
@@ -594,9 +594,8 @@ def snapshot_record(queries: tuple[str, ...], retriever: str, output: str):
         console.print(f"[red]Failed to load retriever '{retriever}': {exc}[/red]")
         sys.exit(1)
 
-    snap = RetrieverSnapshot.record(retriever_obj, list(queries))
-    snap.save(output)
-    console.print(f"[green]Snapshot saved to {output} ({len(snap.results)} queries recorded).[/green]")
+    snap = RetrieverSnapshot.record(retriever_obj, list(queries), save_to=output)
+    console.print(f"[green]Snapshot saved to {output} ({len(snap.data.get('queries', {}))} queries recorded).[/green]")
 
 
 @snapshot_group.command("check")
@@ -624,7 +623,7 @@ def snapshot_check(snapshot_path: str, retriever: str, threshold: float):
     snap = RetrieverSnapshot.load(snapshot_path)
     results = snap.check(retriever_obj, threshold=threshold)
 
-    all_pass = all(r.passed for r in results)
+    all_pass = all(r.passed for r in results.queries)
     status = "[green]✅ All queries passed.[/green]" if all_pass else "[red]❌ Some queries drifted.[/red]"
     console.print(status)
 
@@ -633,10 +632,10 @@ def snapshot_check(snapshot_path: str, retriever: str, threshold: float):
     table.add_column("Score", justify="right")
     table.add_column("Threshold", justify="right")
     table.add_column("Status")
-    for r in results:
+    for r in results.queries:
         table.add_row(
             r.query[:60],
-            f"{r.score:.2f}",
+            f"{r.overlap_ratio:.2f}",
             f"{threshold:.2f}",
             "[green]PASS[/green]" if r.passed else "[red]FAIL[/red]",
         )
@@ -668,9 +667,8 @@ def snapshot_update(snapshot_path: str, retriever: str):
         console.print(f"[red]Failed to load retriever: {exc}[/red]")
         sys.exit(1)
 
-    queries = [r.query for r in snap.results]
-    new_snap = RetrieverSnapshot.record(retriever_obj, queries)
-    new_snap.save(snapshot_path)
+    queries = [r.query for r in snap.check(retriever_obj).queries]
+    RetrieverSnapshot.record(retriever_obj, queries, save_to=snapshot_path)
     console.print(f"[green]Snapshot updated: {snapshot_path}[/green]")
 
 
@@ -703,16 +701,25 @@ def rescore(cassette_path: str, scorer: str, judge_model: str, metrics: str, out
 
     try:
         if scorer == "ragas":
-            from trace_ops.rag.scorers import RagasScorer
-            scorer_obj = RagasScorer(model=judge_model, metrics=metrics.split(","))
+            from trace_ops.rag.scorers import BaseRAGScorer, RagasScorer
+            scorer_obj: BaseRAGScorer = RagasScorer(judge_model=judge_model, metrics=metrics.split(","))
         else:
-            from trace_ops.rag.scorers import DeepEvalScorer
-            scorer_obj = DeepEvalScorer(model=judge_model, metrics=metrics.split(","))
+            from trace_ops.rag.scorers import BaseRAGScorer, DeepEvalScorer
+            scorer_obj = DeepEvalScorer(judge_model=judge_model, metrics=metrics.split(","))
     except ImportError as exc:
         console.print(f"[red]Scorer import failed: {exc}[/red]")
         sys.exit(1)
 
-    result = scorer_obj.score(trace)
+    # Extract query/context/response from the first RAG retrieval + LLM pair
+    from trace_ops._types import EventType
+    retrieval = next((e for e in trace.events if e.event_type == EventType.RETRIEVAL), None)
+    response_event = next((e for e in trace.events if e.event_type == EventType.LLM_RESPONSE), None)
+    query = (retrieval.query if retrieval else "") or ""
+    context_chunks = [str(c.get("text", "") if isinstance(c, dict) else c) for c in (retrieval.chunks or [])] if retrieval else []
+    response_raw = response_event.response if response_event else None
+    response: str = response_raw if isinstance(response_raw, str) else (str(response_raw) if response_raw else "")
+
+    result = scorer_obj.score(query, context_chunks, response)
     console.print(Panel(
         "\n".join(f"[bold]{k}:[/bold] {v:.3f}" for k, v in result.scores.items()),
         title=f"RAG Scores ({scorer}) — {cassette_path}",
@@ -720,7 +727,8 @@ def rescore(cassette_path: str, scorer: str, judge_model: str, metrics: str, out
 
     if output:
         import json as _json
-        Path(output).write_text(_json.dumps(result.to_dict(), indent=2), encoding="utf-8")
+        scores_dict = {"scores": result.scores, "scorer": result.scorer, "judge_model": result.judge_model}
+        Path(output).write_text(_json.dumps(scores_dict, indent=2), encoding="utf-8")
         console.print(f"[green]Scores written to {output}[/green]")
 
 
@@ -908,7 +916,7 @@ def gap_report(golden_dir: str, agent_dir: str, output: str | None, gen_skills: 
         if not p.exists():
             console.print(f"[red]Directory not found: {d}[/red]")
             sys.exit(1)
-        pairs = []
+        pairs: list[tuple[str, object]] = []
         for path in sorted(p.rglob("*.yaml")):
             with contextlib.suppress(Exception):
                 pairs.append((path.name, load_cassette(path)))

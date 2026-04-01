@@ -35,18 +35,22 @@ def patch_chromadb(recorder: Recorder) -> None:
             query_texts = [query_texts]
 
         chunks: list[dict[str, Any]] = []
-        if result and result.get("documents"):
-            for i, doc_list in enumerate(result["documents"]):
+        documents = result.get("documents") if result else None
+        if result and documents:
+            distances = result.get("distances")
+            ids_list = result.get("ids")
+            metadatas = result.get("metadatas")
+            for i, doc_list in enumerate(documents):
                 for j, doc in enumerate(doc_list):
                     score = 0.0
-                    if result.get("distances") and i < len(result["distances"]) and j < len(result["distances"][i]):
-                        score = round(1.0 - float(result["distances"][i][j]), 6)
+                    if distances and i < len(distances) and j < len(distances[i]):
+                        score = round(1.0 - float(distances[i][j]), 6)
                     chunk_id = ""
-                    if result.get("ids") and i < len(result["ids"]) and j < len(result["ids"][i]):
-                        chunk_id = str(result["ids"][i][j])
+                    if ids_list and i < len(ids_list) and j < len(ids_list[i]):
+                        chunk_id = str(ids_list[i][j])
                     meta: dict[str, Any] = {}
-                    if result.get("metadatas") and i < len(result["metadatas"]) and j < len(result["metadatas"][i]):
-                        meta = result["metadatas"][i][j] or {}
+                    if metadatas and i < len(metadatas) and j < len(metadatas[i]):
+                        meta = dict(metadatas[i][j]) if metadatas[i][j] else {}
                     chunks.append({"id": chunk_id, "text": doc or "", "score": score, "metadata": meta})
 
         recorder.record_retrieval(
@@ -59,5 +63,5 @@ def patch_chromadb(recorder: Recorder) -> None:
         )
         return result
 
-    chromadb.Collection.query = patched_query  # type: ignore[method-assign]
+    chromadb.Collection.query = patched_query  # type: ignore[method-assign,assignment]
     recorder._rag_patches.append(("chromadb.Collection.query", original_query, chromadb.Collection, "query"))

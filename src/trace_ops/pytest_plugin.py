@@ -138,7 +138,7 @@ def cassette(request: pytest.FixtureRequest) -> Generator[Recorder | Replayer, N
         cass_path = Path(marker.args[0])
     else:
         cass_path = cassette_path_for_test(
-            str(request.fspath), request.node.name
+            str(request.node.path), request.node.name
         )
 
     # Determine mode
@@ -177,7 +177,7 @@ def trace_snapshot(request: pytest.FixtureRequest):
     from trace_ops.diff import assert_trace_unchanged
 
     update = request.config.getoption("--record", default=False)
-    test_file = Path(str(request.fspath))
+    test_file = Path(str(request.node.path))
     test_name = request.node.name
     snap_path = cassette_path_for_test(str(test_file), f"{test_name}_snapshot")
 
@@ -216,8 +216,9 @@ def pytest_runtest_makereport(item: pytest.Item, call: pytest.CallInfo) -> None:
     # Look for a Recorder in the fixture values
     trace = None
     for fixture_name in ("cassette",):
-        if fixture_name in item.funcargs:
-            ctx = item.funcargs[fixture_name]
+        funcargs: dict = getattr(item, "funcargs", {}) or {}
+        if fixture_name in funcargs:
+            ctx = funcargs[fixture_name]
             if hasattr(ctx, "trace"):
                 trace = ctx.trace
             elif hasattr(ctx, "_trace"):
@@ -263,7 +264,7 @@ def pytest_runtest_makereport(item: pytest.Item, call: pytest.CallInfo) -> None:
             if max_chunks is not None:
                 assert_chunk_count(trace, max_chunks=max_chunks)
             if max_retrieval_ms is not None:
-                assert_retrieval_latency(trace, max_latency_ms=max_retrieval_ms)
+                assert_retrieval_latency(trace, max_ms=max_retrieval_ms)
             if max_context_percent is not None:
                 assert_context_window_usage(trace, max_percent=max_context_percent)
 
@@ -273,7 +274,11 @@ def pytest_runtest_makereport(item: pytest.Item, call: pytest.CallInfo) -> None:
             if min_context_relevance is not None:
                 rag_score_constraints["context_relevance"] = float(min_context_relevance)
             if rag_score_constraints:
-                assert_rag_scores(trace, min_scores=rag_score_constraints)
+                assert_rag_scores(
+                    trace,
+                    min_faithfulness=rag_score_constraints.get("faithfulness"),
+                    min_context_precision=rag_score_constraints.get("context_relevance"),
+                )
 
     # ── retriever_snapshot marker ────────────────────────────────────
     snap_marker = item.get_closest_marker("retriever_snapshot")
@@ -290,7 +295,8 @@ def pytest_runtest_makereport(item: pytest.Item, call: pytest.CallInfo) -> None:
             return
 
         # Find cassette/recorder from fixtures
-        ctx = item.funcargs.get("cassette")
+        _funcargs: dict = getattr(item, "funcargs", {}) or {}
+        ctx = _funcargs.get("cassette")
         if ctx is None:
             return
 

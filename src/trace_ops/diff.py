@@ -38,7 +38,7 @@ class TraceDiff:
     # Specific changes
     added_tools: list[str] = field(default_factory=list)
     removed_tools: list[str] = field(default_factory=list)
-    changed_models: list[dict[str, str]] = field(default_factory=list)
+    changed_models: list[dict[str, Any]] = field(default_factory=list)
     response_diffs: list[dict[str, Any]] = field(default_factory=list)
 
     # Optional RAG diff (populated when rag=True passed to diff_traces)

@@ -50,5 +50,5 @@ def patch_openai_embeddings(recorder: Recorder) -> None:
         ))
         return result
 
-    Embeddings.create = patched  # type: ignore[method-assign]
+    Embeddings.create = patched  # type: ignore[method-assign,assignment]
     recorder._rag_patches.append(("openai.resources.Embeddings.create", original, Embeddings, "create"))
