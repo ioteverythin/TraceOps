@@ -16,8 +16,8 @@ not individual chunks.  This keeps files compact and human-readable.
 from __future__ import annotations
 
 import json
-from typing import Any, AsyncIterator, Callable, Iterator
-
+from collections.abc import AsyncIterator, Callable, Iterator
+from typing import Any
 
 # ── Recording wrappers ──────────────────────────────────────────────
 

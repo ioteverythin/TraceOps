@@ -8,22 +8,16 @@ paths, and _record_tool_calls_from_response for all providers.
 
 from __future__ import annotations
 
-import asyncio
 import sys
-import types
 from types import SimpleNamespace
-from unittest.mock import MagicMock, patch
 
 import pytest
 
-from trace_ops._types import EventType, Trace, TraceEvent
+from trace_ops._types import EventType, TraceEvent
 from trace_ops.recorder import (
     Recorder,
-    _Patch,
     _record_tool_calls_from_response,
-    _safe_serialize,
 )
-
 
 # ── LiteLLM patching ───────────────────────────────────────────────
 

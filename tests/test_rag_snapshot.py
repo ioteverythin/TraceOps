@@ -2,14 +2,12 @@
 
 from __future__ import annotations
 
-import tempfile
 from pathlib import Path
 
 import pytest
 
 from trace_ops._types import EventType, Trace, TraceEvent
 from trace_ops.rag.snapshot import QueryResult, RetrieverSnapshot, SnapshotCheckResult
-
 
 # ── Mock retriever ─────────────────────────────────────────────────────────
 
@@ -111,7 +109,7 @@ def test_snapshot_record_all_queries_present(tmp_path: Path):
 def test_snapshot_load_roundtrip(tmp_path: Path):
     queries = ["hello"]
     fn = _mock_retriever_fn({"hello": [_chunk("c1", score=0.95)]})
-    snap = RetrieverSnapshot.record(None, queries, save_to=tmp_path / "s.yaml", retriever_fn=fn)
+    RetrieverSnapshot.record(None, queries, save_to=tmp_path / "s.yaml", retriever_fn=fn)
     loaded = RetrieverSnapshot.load(tmp_path / "s.yaml")
     assert loaded.data["queries"]["hello"][0]["id"] == "c1"
     assert loaded.data["queries"]["hello"][0]["score"] == pytest.approx(0.95)

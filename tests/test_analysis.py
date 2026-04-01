@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
 import pytest
@@ -13,11 +12,9 @@ from trace_ops.analysis import (
     GapAnalyzer,
     GapReport,
     PatternDetector,
-    PatternReport,
     SkillsGenerator,
 )
 from trace_ops.cassette import save_cassette
-
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
 

@@ -10,7 +10,7 @@ if TYPE_CHECKING:
     from trace_ops.recorder import Recorder
 
 
-def patch_openai_embeddings(recorder: "Recorder") -> None:
+def patch_openai_embeddings(recorder: Recorder) -> None:
     """Patch ``openai.resources.Embeddings.create()`` to record embedding events."""
     try:
         from openai.resources.embeddings import Embeddings

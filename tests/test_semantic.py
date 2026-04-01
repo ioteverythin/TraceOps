@@ -8,7 +8,6 @@ import pytest
 
 from trace_ops._types import EventType, Trace, TraceEvent
 
-
 # ── ResponseSimilarity dataclass ──────────────────────────────────────────
 
 
@@ -233,8 +232,8 @@ def test_diff_traces_semantic_false_no_semantic_diff():
 
 def test_diff_traces_semantic_true_populates_on_openai(monkeypatch):
     """With mocked embeddings, diff_traces should populate semantic_diff."""
-    from trace_ops.semantic import similarity as sim_mod
     from trace_ops.diff import diff_traces
+    from trace_ops.semantic import similarity as sim_mod
 
     def fake_embed(texts: list[str], model: str) -> list[list[float]]:
         return [[1.0, 0.0] for _ in texts]

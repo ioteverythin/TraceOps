@@ -121,7 +121,7 @@ class ContextAnalysis:
         return "\n".join(lines)
 
 
-def analyze_context_usage(trace: "Trace") -> ContextAnalysis:
+def analyze_context_usage(trace: Trace) -> ContextAnalysis:
     """Analyse how the context window is used in a RAG trace.
 
     Pairs the first retrieval event with the first LLM request/response

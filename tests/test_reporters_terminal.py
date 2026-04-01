@@ -2,11 +2,8 @@
 
 from __future__ import annotations
 
-import pytest
-
 from trace_ops._types import EventType, Trace, TraceEvent
 from trace_ops.reporters.terminal import TraceDebugger
-
 
 # ── Helpers ─────────────────────────────────────────────────────────
 

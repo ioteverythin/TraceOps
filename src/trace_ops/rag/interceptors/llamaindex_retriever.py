@@ -10,7 +10,7 @@ if TYPE_CHECKING:
     from trace_ops.recorder import Recorder
 
 
-def patch_llamaindex(recorder: "Recorder") -> None:
+def patch_llamaindex(recorder: Recorder) -> None:
     """Patch LlamaIndex ``BaseRetriever.retrieve()`` to capture retrieval events."""
     try:
         from llama_index.core.base.base_retriever import BaseRetriever

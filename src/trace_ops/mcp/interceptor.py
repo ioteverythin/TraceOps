@@ -17,7 +17,7 @@ if TYPE_CHECKING:
     from trace_ops.recorder import Recorder
 
 
-def patch_mcp(recorder: "Recorder") -> None:
+def patch_mcp(recorder: Recorder) -> None:
     """Install MCP interceptor on ``mcp.ClientSession``."""
     try:
         from mcp import ClientSession
@@ -28,7 +28,7 @@ def patch_mcp(recorder: "Recorder") -> None:
     _patch_async(recorder, ClientSession)
 
 
-def _patch_sync(recorder: "Recorder", ClientSession: Any) -> None:
+def _patch_sync(recorder: Recorder, ClientSession: Any) -> None:
     if not hasattr(ClientSession, "call_tool"):
         return
 
@@ -75,7 +75,7 @@ def _patch_sync(recorder: "Recorder", ClientSession: Any) -> None:
     recorder._mcp_patches.append(("mcp.ClientSession.call_tool", original, ClientSession, "call_tool"))
 
 
-def _patch_async(recorder: "Recorder", ClientSession: Any) -> None:
+def _patch_async(recorder: Recorder, ClientSession: Any) -> None:
     """Patch the async variant if it exists."""
     if not hasattr(ClientSession, "call_tool_async"):
         return

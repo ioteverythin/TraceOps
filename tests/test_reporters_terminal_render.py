@@ -9,7 +9,6 @@ from __future__ import annotations
 
 from io import StringIO
 
-import pytest
 from rich.console import Console
 
 from trace_ops._types import EventType, Trace, TraceEvent, TraceMetadata
@@ -18,7 +17,6 @@ from trace_ops.reporters.terminal import (
     _extract_content,
     _role_colour,
 )
-
 
 # ── Helpers ──────────────────────────────────────────────────────────
 

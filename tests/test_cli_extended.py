@@ -2,16 +2,13 @@
 
 from __future__ import annotations
 
-import time
 from pathlib import Path
 
-import pytest
 from click.testing import CliRunner
 
 from trace_ops._types import EventType, Trace, TraceEvent
 from trace_ops.cassette import save_cassette
 from trace_ops.cli import main
-
 
 # ── Helpers ─────────────────────────────────────────────────────────
 

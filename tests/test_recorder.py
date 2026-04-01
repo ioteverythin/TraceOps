@@ -1,6 +1,5 @@
 """Tests for the Recorder."""
 
-import pytest
 from trace_ops._types import EventType
 from trace_ops.recorder import Recorder
 

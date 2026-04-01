@@ -11,11 +11,11 @@ Interceptors are installed by :class:`trace_ops.recorder.Recorder` when
 from __future__ import annotations
 
 from trace_ops.rag.interceptors.chromadb_interceptor import patch_chromadb
+from trace_ops.rag.interceptors.embedding_interceptor import patch_openai_embeddings
 from trace_ops.rag.interceptors.langchain_retriever import patch_langchain_retriever
 from trace_ops.rag.interceptors.llamaindex_retriever import patch_llamaindex
 from trace_ops.rag.interceptors.pinecone_interceptor import patch_pinecone
 from trace_ops.rag.interceptors.qdrant_interceptor import patch_qdrant
-from trace_ops.rag.interceptors.embedding_interceptor import patch_openai_embeddings
 
 __all__ = [
     "patch_chromadb",

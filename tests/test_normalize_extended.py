@@ -6,8 +6,6 @@ normalize_anthropic_response, normalize_response, normalize_for_comparison.
 
 from __future__ import annotations
 
-import pytest
-
 from trace_ops.normalize import (
     NormalizedResponse,
     NormalizedToolCall,
@@ -16,7 +14,6 @@ from trace_ops.normalize import (
     normalize_openai_response,
     normalize_response,
 )
-
 
 # ── NormalizedToolCall ──────────────────────────────────────────────
 

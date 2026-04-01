@@ -12,8 +12,8 @@ with a CassetteMismatchError.
 from __future__ import annotations
 
 import threading
-import time
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 from trace_ops._types import EventType, Trace, TraceEvent
 from trace_ops.cassette import CassetteMismatchError, load_cassette
@@ -342,6 +342,7 @@ class Replayer:
         """Patch OpenAI to return recorded responses (sync)."""
         try:
             from openai.resources.chat.completions import Completions
+
             from trace_ops.recorder import _Patch
 
             original = Completions.create
@@ -371,6 +372,7 @@ class Replayer:
         """Patch OpenAI async to return recorded responses."""
         try:
             from openai.resources.chat.completions import AsyncCompletions
+
             from trace_ops.recorder import _Patch
 
             original = AsyncCompletions.create
@@ -400,6 +402,7 @@ class Replayer:
         """Patch Anthropic to return recorded responses (sync)."""
         try:
             from anthropic.resources.messages import Messages
+
             from trace_ops.recorder import _Patch
 
             original = Messages.create
@@ -429,6 +432,7 @@ class Replayer:
         """Patch Anthropic async to return recorded responses."""
         try:
             from anthropic.resources.messages import AsyncMessages
+
             from trace_ops.recorder import _Patch
 
             original = AsyncMessages.create
@@ -458,6 +462,7 @@ class Replayer:
         """Patch litellm to return recorded responses (sync)."""
         try:
             import litellm
+
             from trace_ops.recorder import _Patch
 
             original = litellm.completion
@@ -487,6 +492,7 @@ class Replayer:
         """Patch litellm.acompletion to return recorded responses."""
         try:
             import litellm
+
             from trace_ops.recorder import _Patch
 
             original = litellm.acompletion

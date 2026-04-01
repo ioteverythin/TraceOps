@@ -53,18 +53,18 @@ from trace_ops.reporters.cost_dashboard import CostDashboard, CostSummary
 
 # RAG add-on (graceful degradation if not installed)
 try:
-    from trace_ops.rag.diff import RAGDiffResult, diff_rag
     from trace_ops.rag.assertions import (
         RAGAssertionError,
         assert_chunk_count,
-        assert_retrieval_latency,
         assert_min_relevance_score,
         assert_no_retrieval_drift,
         assert_rag_scores,
+        assert_retrieval_latency,
     )
-    from trace_ops.rag.scorers import RagasScorer, DeepEvalScorer
-    from trace_ops.rag.snapshot import RetrieverSnapshot
     from trace_ops.rag.context_analysis import analyze_context_usage
+    from trace_ops.rag.diff import RAGDiffResult, diff_rag
+    from trace_ops.rag.scorers import DeepEvalScorer, RagasScorer
+    from trace_ops.rag.snapshot import RetrieverSnapshot
     _RAG_AVAILABLE = True
 except ImportError:
     _RAG_AVAILABLE = False
@@ -78,15 +78,15 @@ except ImportError:
 
 # Semantic add-on
 try:
-    from trace_ops.semantic.similarity import SemanticDiffResult, semantic_similarity
     from trace_ops.semantic.assertions import SemanticRegressionError, assert_semantic_similarity
+    from trace_ops.semantic.similarity import SemanticDiffResult, semantic_similarity
     _SEMANTIC_AVAILABLE = True
 except ImportError:
     _SEMANTIC_AVAILABLE = False
 
 # Export add-on
 try:
-    from trace_ops.export.finetune import to_openai_finetune, to_anthropic_finetune
+    from trace_ops.export.finetune import to_anthropic_finetune, to_openai_finetune
     _EXPORT_AVAILABLE = True
 except ImportError:
     _EXPORT_AVAILABLE = False

@@ -10,7 +10,7 @@ if TYPE_CHECKING:
     from trace_ops.recorder import Recorder
 
 
-def patch_langchain_retriever(recorder: "Recorder") -> None:
+def patch_langchain_retriever(recorder: Recorder) -> None:
     """Patch LangChain ``VectorStoreRetriever._get_relevant_documents``."""
     try:
         from langchain_core.vectorstores import VectorStoreRetriever

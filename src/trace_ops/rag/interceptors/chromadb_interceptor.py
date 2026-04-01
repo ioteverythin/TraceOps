@@ -10,7 +10,7 @@ if TYPE_CHECKING:
     from trace_ops.recorder import Recorder
 
 
-def patch_chromadb(recorder: "Recorder") -> None:
+def patch_chromadb(recorder: Recorder) -> None:
     """Monkey-patch ``chromadb.Collection.query()`` to record retrieval events.
 
     Silently skips if chromadb is not installed.
@@ -39,17 +39,14 @@ def patch_chromadb(recorder: "Recorder") -> None:
             for i, doc_list in enumerate(result["documents"]):
                 for j, doc in enumerate(doc_list):
                     score = 0.0
-                    if result.get("distances") and i < len(result["distances"]):
-                        if j < len(result["distances"][i]):
-                            score = round(1.0 - float(result["distances"][i][j]), 6)
+                    if result.get("distances") and i < len(result["distances"]) and j < len(result["distances"][i]):
+                        score = round(1.0 - float(result["distances"][i][j]), 6)
                     chunk_id = ""
-                    if result.get("ids") and i < len(result["ids"]):
-                        if j < len(result["ids"][i]):
-                            chunk_id = str(result["ids"][i][j])
+                    if result.get("ids") and i < len(result["ids"]) and j < len(result["ids"][i]):
+                        chunk_id = str(result["ids"][i][j])
                     meta: dict[str, Any] = {}
-                    if result.get("metadatas") and i < len(result["metadatas"]):
-                        if j < len(result["metadatas"][i]):
-                            meta = result["metadatas"][i][j] or {}
+                    if result.get("metadatas") and i < len(result["metadatas"]) and j < len(result["metadatas"][i]):
+                        meta = result["metadatas"][i][j] or {}
                     chunks.append({"id": chunk_id, "text": doc or "", "score": score, "metadata": meta})
 
         recorder.record_retrieval(

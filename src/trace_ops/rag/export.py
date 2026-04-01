@@ -17,6 +17,7 @@ Usage::
 
 from __future__ import annotations
 
+import contextlib
 import csv
 from pathlib import Path
 from typing import Any
@@ -34,10 +35,8 @@ def _load_traces(
     traces = []
     for pattern in patterns:
         for cassette_path in sorted(path.glob(pattern)):
-            try:
+            with contextlib.suppress(Exception):
                 traces.append((cassette_path, load_cassette(cassette_path)))
-            except Exception:
-                pass
     return traces
 
 

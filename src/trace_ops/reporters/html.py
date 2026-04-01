@@ -20,7 +20,6 @@ from __future__ import annotations
 import html
 import json
 from pathlib import Path
-from typing import Any
 
 from trace_ops._types import EventType, Trace, TraceEvent
 
@@ -121,7 +120,7 @@ def _build_trajectory(trace: Trace) -> str:
     if not trace.trajectory:
         return "<p class='dim'>No trajectory recorded.</p>"
     steps = []
-    for i, step in enumerate(trace.trajectory):
+    for _i, step in enumerate(trace.trajectory):
         kind = step.split(":")[0]
         colour = _EVENT_COLOURS.get(
             {"llm_call": "llm_request", "tool": "tool_call", "decision": "agent_decision", "error": "error"}.get(kind, ""),

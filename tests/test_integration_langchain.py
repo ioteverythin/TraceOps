@@ -7,8 +7,6 @@ to verify that recording and replaying work end-to-end.
 from __future__ import annotations
 
 import asyncio
-import os
-import tempfile
 from pathlib import Path
 
 import pytest
@@ -25,9 +23,8 @@ from langchain_core.language_models.fake_chat_models import (
     FakeListChatModel,
     FakeMessagesListChatModel,
 )
-from langchain_core.messages import AIMessage, HumanMessage
+from langchain_core.messages import AIMessage
 from langchain_core.tools import tool
-
 
 # ── Fixtures ─────────────────────────────────────────────────────────
 
@@ -235,9 +232,8 @@ class TestLangChainErrorRecording:
         # FakeListChatModel with empty list will raise on invoke
         model = FakeListChatModel(responses=[])
 
-        with pytest.raises(Exception):
-            with Recorder(save_to=cassette_path) as rec:
-                model.invoke("This will fail")
+        with pytest.raises(Exception), Recorder(save_to=cassette_path) as rec:
+            model.invoke("This will fail")
 
         # Should still have at least a request event before the error
         req_events = [
@@ -257,7 +253,7 @@ class TestLangChainPatchCleanup:
 
         original_invoke = BaseChatModel.invoke
 
-        with Recorder() as rec:
+        with Recorder():
             pass  # just enter and exit
 
         assert BaseChatModel.invoke is original_invoke

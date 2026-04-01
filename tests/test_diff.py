@@ -1,8 +1,9 @@
 """Tests for the trace diff engine."""
 
 import pytest
+
 from trace_ops._types import EventType, Trace, TraceEvent
-from trace_ops.diff import diff_traces, assert_trace_unchanged
+from trace_ops.diff import assert_trace_unchanged, diff_traces
 
 
 def _make_trace(*steps: tuple[str, str]) -> Trace:

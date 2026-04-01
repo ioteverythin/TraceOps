@@ -7,12 +7,9 @@ trajectory), finalize(), _update_stats(), and fingerprint().
 
 from __future__ import annotations
 
-import time
-
 import pytest
 
 from trace_ops._types import EventType, Trace, TraceEvent, TraceMetadata
-
 
 # ── TraceEvent serialization ─────────────────────────────────────────
 

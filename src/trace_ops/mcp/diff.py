@@ -76,7 +76,7 @@ class MCPDiffResult:
         return "\n".join(lines)
 
 
-def diff_mcp(old_trace: "Trace", new_trace: "Trace") -> MCPDiffResult:
+def diff_mcp(old_trace: Trace, new_trace: Trace) -> MCPDiffResult:
     """Compare MCP tool sequences between two traces.
 
     Args:
@@ -88,7 +88,7 @@ def diff_mcp(old_trace: "Trace", new_trace: "Trace") -> MCPDiffResult:
     """
     from trace_ops._types import EventType
 
-    def _tool_calls(trace: "Trace") -> list[dict[str, Any]]:
+    def _tool_calls(trace: Trace) -> list[dict[str, Any]]:
         return [
             {
                 "server_name": e.server_name or "",

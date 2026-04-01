@@ -16,8 +16,8 @@ Usage:
 
 from __future__ import annotations
 
+from collections.abc import Generator
 from pathlib import Path
-from typing import Any, Generator
 
 import pytest
 
@@ -143,9 +143,7 @@ def cassette(request: pytest.FixtureRequest) -> Generator[Recorder | Replayer, N
 
     # Determine mode
     should_record = False
-    if record_flag or record_mode == "all":
-        should_record = True
-    elif record_mode in ("once", "new", "auto") and not cass_path.exists():
+    if record_flag or record_mode == "all" or record_mode in ("once", "new", "auto") and not cass_path.exists():
         should_record = True
 
     if should_record:
@@ -249,9 +247,9 @@ def pytest_runtest_makereport(item: pytest.Item, call: pytest.CallInfo) -> None:
         try:
             from trace_ops.rag.assertions import (
                 assert_chunk_count,
-                assert_retrieval_latency,
                 assert_context_window_usage,
                 assert_rag_scores,
+                assert_retrieval_latency,
             )
         except ImportError:
             pass

@@ -4,13 +4,10 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from unittest.mock import MagicMock, patch
-
-import pytest
+from unittest.mock import patch
 
 from trace_ops._types import EventType, Trace, TraceEvent
 from trace_ops.cassette import save_cassette
-
 
 # ── Helpers ─────────────────────────────────────────────────────────
 
@@ -70,47 +67,47 @@ class TestPytestAddOption:
 
 
 class TestEnvVarOverrides:
-    """Test trace_ops_RECORD and trace_ops_MODE env vars."""
+    """Test TRACEOPS_RECORD and TRACEOPS_MODE env vars."""
 
     def test_env_record_true(self):
-        """trace_ops_RECORD=1 should force recording."""
+        """TRACEOPS_RECORD=1 should force recording."""
         # This tests the logic by importing and checking the fixture function
         # We can't easily test the fixture directly, but we can test the logic
-        with patch.dict(os.environ, {"trace_ops_RECORD": "1"}):
-            env_record = os.environ.get("trace_ops_RECORD", "").lower()
+        with patch.dict(os.environ, {"TRACEOPS_RECORD": "1"}):
+            env_record = os.environ.get("TRACEOPS_RECORD", "").lower()
             assert env_record in ("1", "true", "yes")
 
     def test_env_record_yes(self):
-        with patch.dict(os.environ, {"trace_ops_RECORD": "yes"}):
-            env_record = os.environ.get("trace_ops_RECORD", "").lower()
+        with patch.dict(os.environ, {"TRACEOPS_RECORD": "yes"}):
+            env_record = os.environ.get("TRACEOPS_RECORD", "").lower()
             assert env_record in ("1", "true", "yes")
 
     def test_env_record_true_string(self):
-        with patch.dict(os.environ, {"trace_ops_RECORD": "TRUE"}):
-            env_record = os.environ.get("trace_ops_RECORD", "").lower()
+        with patch.dict(os.environ, {"TRACEOPS_RECORD": "TRUE"}):
+            env_record = os.environ.get("TRACEOPS_RECORD", "").lower()
             assert env_record in ("1", "true", "yes")
 
     def test_env_mode_auto(self):
-        with patch.dict(os.environ, {"trace_ops_MODE": "auto"}):
-            env_mode = os.environ.get("trace_ops_MODE", "").lower()
+        with patch.dict(os.environ, {"TRACEOPS_MODE": "auto"}):
+            env_mode = os.environ.get("TRACEOPS_MODE", "").lower()
             assert env_mode in ("none", "once", "new", "all", "auto")
 
     def test_env_mode_all(self):
-        with patch.dict(os.environ, {"trace_ops_MODE": "ALL"}):
-            env_mode = os.environ.get("trace_ops_MODE", "").lower()
+        with patch.dict(os.environ, {"TRACEOPS_MODE": "ALL"}):
+            env_mode = os.environ.get("TRACEOPS_MODE", "").lower()
             assert env_mode in ("none", "once", "new", "all", "auto")
 
     def test_env_mode_invalid_ignored(self):
-        with patch.dict(os.environ, {"trace_ops_MODE": "invalid"}):
-            env_mode = os.environ.get("trace_ops_MODE", "").lower()
+        with patch.dict(os.environ, {"TRACEOPS_MODE": "invalid"}):
+            env_mode = os.environ.get("TRACEOPS_MODE", "").lower()
             assert env_mode not in ("none", "once", "new", "all", "auto")
 
     def test_env_unset_default(self):
         env = dict(os.environ)
-        env.pop("trace_ops_RECORD", None)
-        env.pop("trace_ops_MODE", None)
+        env.pop("TRACEOPS_RECORD", None)
+        env.pop("TRACEOPS_MODE", None)
         with patch.dict(os.environ, env, clear=True):
-            env_record = os.environ.get("trace_ops_RECORD", "").lower()
+            env_record = os.environ.get("TRACEOPS_RECORD", "").lower()
             assert env_record not in ("1", "true", "yes")
 
 
@@ -128,9 +125,7 @@ class TestRecordModeLogic:
     ) -> bool:
         """Replicate the logic from the cassette fixture."""
         should_record = False
-        if record_flag or record_mode == "all":
-            should_record = True
-        elif record_mode in ("once", "new", "auto") and not cassette_exists:
+        if record_flag or record_mode == "all" or record_mode in ("once", "new", "auto") and not cassette_exists:
             should_record = True
         return should_record
 

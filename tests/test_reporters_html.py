@@ -4,11 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
-
 from trace_ops._types import EventType, Trace, TraceEvent
 from trace_ops.reporters.html import generate_html_report
-
 
 # ── Helpers ─────────────────────────────────────────────────────────
 

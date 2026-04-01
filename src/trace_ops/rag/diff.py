@@ -116,7 +116,7 @@ class RAGDiffResult:
         return "\n".join(lines)
 
 
-def diff_rag(old_trace: "Trace", new_trace: "Trace") -> RAGDiffResult:
+def diff_rag(old_trace: Trace, new_trace: Trace) -> RAGDiffResult:
     """Compare RAG-specific events between two traces.
 
     Args:
@@ -132,7 +132,7 @@ def diff_rag(old_trace: "Trace", new_trace: "Trace") -> RAGDiffResult:
     retrieval_diffs: list[RetrievalDiff] = []
     retriever_changed = False
 
-    for old_r, new_r in zip(old_retrievals, new_retrievals):
+    for old_r, new_r in zip(old_retrievals, new_retrievals, strict=False):
         def _chunk_map(event):
             m = {}
             for c in (event.chunks or []):

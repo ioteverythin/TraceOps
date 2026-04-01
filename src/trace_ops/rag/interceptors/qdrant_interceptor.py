@@ -10,7 +10,7 @@ if TYPE_CHECKING:
     from trace_ops.recorder import Recorder
 
 
-def patch_qdrant(recorder: "Recorder") -> None:
+def patch_qdrant(recorder: Recorder) -> None:
     """Patch ``QdrantClient.search()`` to record retrieval events."""
     try:
         from qdrant_client import QdrantClient

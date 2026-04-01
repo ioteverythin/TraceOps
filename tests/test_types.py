@@ -1,7 +1,6 @@
 """Tests for the trace data model."""
 
-import pytest
-from trace_ops._types import EventType, Trace, TraceEvent, TraceMetadata
+from trace_ops._types import EventType, Trace, TraceEvent
 
 
 class TestTraceEvent:

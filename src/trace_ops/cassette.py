@@ -9,7 +9,6 @@ directory next to the test file, named after the test function.
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 from typing import Any
 
@@ -105,7 +104,7 @@ def load_cassette(path: str | Path) -> Trace:
     if not path.exists():
         raise CassetteNotFoundError(path)
 
-    with open(path, "r", encoding="utf-8") as f:
+    with open(path, encoding="utf-8") as f:
         data = yaml.safe_load(f)
 
     return Trace.from_dict(data)

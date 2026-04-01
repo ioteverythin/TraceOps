@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from types import SimpleNamespace
 from typing import Any
 
 import pytest
@@ -12,12 +11,11 @@ from trace_ops.streaming import (
     AsyncStreamReplay,
     StreamCapture,
     StreamReplay,
-    _assemble_openai_chunks,
     _assemble_anthropic_chunks,
-    _split_openai_response,
+    _assemble_openai_chunks,
     _split_anthropic_response,
+    _split_openai_response,
 )
-
 
 # ── Helpers ─────────────────────────────────────────────────────────
 
@@ -268,7 +266,7 @@ class TestAssemblyRoundtrip:
         reassembled = _assemble_openai_chunks(chunks)
         tc = reassembled["choices"][0]["message"]["tool_calls"][0]
         assert tc["function"]["name"] == "search"
-        assert '{"query": "test"}' == tc["function"]["arguments"]
+        assert tc["function"]["arguments"] == '{"query": "test"}'
 
     def test_anthropic_roundtrip(self):
         original = {

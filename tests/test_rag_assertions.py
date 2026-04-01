@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import contextlib
+
 import pytest
 
 from trace_ops._types import EventType, Trace, TraceEvent
@@ -13,7 +15,6 @@ from trace_ops.rag.assertions import (
     assert_no_retrieval_drift,
     assert_retrieval_latency,
 )
-
 
 # ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -117,10 +118,8 @@ def test_assert_min_relevance_score_zero_ignored():
     """Chunks with score=0 should be ignored (not scored)."""
     trace = _trace_with_retrieval([_chunk("c1", score=0.0)])
     # Should not fail for chunks with no score data
-    try:
+    with contextlib.suppress(RAGAssertionError):
         assert_min_relevance_score(trace, min_score=0.7)
-    except RAGAssertionError:
-        pass  # acceptable to flag
 
 
 # ── assert_no_retrieval_drift ───────────────────────────────────────────────
@@ -175,10 +174,8 @@ def test_assert_context_window_usage_passes():
         input_tokens=10,
     ))
     # Should not raise for a trace with very little context
-    try:
+    with contextlib.suppress(Exception):  # may raise if context analysis yields missing data
         assert_context_window_usage(trace, max_percent=0.95)
-    except Exception:
-        pass  # may raise if context analysis yields missing data — that's fine
 
 
 def test_assert_context_window_usage_no_retrieval():

@@ -11,7 +11,6 @@ import pytest
 from trace_ops._types import EventType, Trace, TraceEvent
 from trace_ops.cassette import save_cassette
 
-
 # ── Helpers ────────────────────────────────────────────────────────────────
 
 

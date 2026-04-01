@@ -9,7 +9,6 @@ import pytest
 
 from trace_ops.github import PRDiff, PRFetcher, PRFile
 
-
 # ── Fixtures ───────────────────────────────────────────────────────────────────
 
 
@@ -258,7 +257,7 @@ class TestPRFetcher:
     def test_fetch_recent_returns_list(self, mock_urlopen):
         # List call → list of PRs; then N pairs of (PR detail, files)
         pr_list = _prs_list_response(count=3)
-        pr_detail = _pr_api_response(pr_number=1)
+        _pr_api_response(pr_number=1)
         files = _files_api_response()
         # First call: list endpoint; then 3 × (detail, files)
         mock_urlopen.side_effect = [

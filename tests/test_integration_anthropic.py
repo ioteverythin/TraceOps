@@ -7,9 +7,8 @@ or network access needed.
 
 from __future__ import annotations
 
-import json
 from types import SimpleNamespace
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -22,7 +21,6 @@ from trace_ops.replayer import Replayer
 anthropic = pytest.importorskip("anthropic", reason="anthropic not installed")
 from anthropic import Anthropic
 from anthropic.resources.messages import Messages
-
 
 # ── Helpers ──────────────────────────────────────────────────────────
 
@@ -122,7 +120,7 @@ class TestAnthropicRecordReplay:
 
         # Replay
         client2 = Anthropic(api_key="sk-ant-fake")
-        with Replayer(cassette_path) as rep:
+        with Replayer(cassette_path):
             result = client2.messages.create(
                 model="claude-3-5-sonnet-20241022",
                 max_tokens=1024,
@@ -146,7 +144,7 @@ class TestAnthropicToolUse:
         with patch.object(Messages, "create", return_value=fake_resp):
             client = Anthropic(api_key="sk-ant-fake")
             with Recorder(save_to=cassette_path) as rec:
-                result = client.messages.create(
+                client.messages.create(
                     model="claude-3-5-sonnet-20241022",
                     max_tokens=1024,
                     messages=[{"role": "user", "content": "Weather in NYC?"}],
@@ -166,7 +164,7 @@ class TestAnthropicToolUse:
         with patch.object(Messages, "create", return_value=fake_resp):
             client = Anthropic(api_key="sk-ant-fake")
             with Recorder(save_to=cassette_path) as rec:
-                result = client.messages.create(
+                client.messages.create(
                     model="claude-3-5-sonnet-20241022",
                     max_tokens=1024,
                     messages=[{"role": "user", "content": "Compare"}],

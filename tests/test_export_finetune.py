@@ -5,10 +5,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-import pytest
-
 from trace_ops._types import EventType, Trace, TraceEvent
-
 
 # ── helpers ───────────────────────────────────────────────────────────────
 
@@ -148,10 +145,9 @@ def test_openai_finetune_system_prompt_present(tmp_path):
 
 
 def test_openai_finetune_custom_system_prompt(tmp_path):
-    from trace_ops.export.finetune import to_openai_finetune
-
     # Create cassette without a system message
     from trace_ops.cassette import save_cassette
+    from trace_ops.export.finetune import to_openai_finetune
 
     cassette_dir = tmp_path / "no_sys"
     cassette_dir.mkdir()

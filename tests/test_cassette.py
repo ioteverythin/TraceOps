@@ -1,12 +1,13 @@
 """Tests for cassette storage (save/load)."""
 
 import pytest
+
 from trace_ops._types import EventType, Trace, TraceEvent
 from trace_ops.cassette import (
     CassetteNotFoundError,
+    cassette_path_for_test,
     load_cassette,
     save_cassette,
-    cassette_path_for_test,
 )
 
 

@@ -4,8 +4,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
-
 from trace_ops._types import EventType, Trace, TraceEvent
 from trace_ops.reporters.html import (
     _build_cost_chart,
@@ -16,7 +14,6 @@ from trace_ops.reporters.html import (
     _event_detail,
     generate_html_report,
 )
-
 
 # ── Helpers ─────────────────────────────────────────────────────────
 

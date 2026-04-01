@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import time
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any
 
 
@@ -115,10 +115,10 @@ class RagasScorer(BaseRAGScorer):
     def _build_metrics(self) -> list[Any]:
         try:
             from ragas.metrics import (
+                ContextRecall,
                 Faithfulness,
                 LLMContextPrecisionWithoutReference,
                 ResponseRelevancy,
-                ContextRecall,
             )
         except ImportError as exc:
             raise ImportError("Install ragas: pip install traceops[ragas]") from exc
@@ -192,9 +192,9 @@ class DeepEvalScorer(BaseRAGScorer):
     def _build_metric(self, name: str) -> Any | None:
         try:
             from deepeval.metrics import (
-                FaithfulnessMetric,
-                ContextualRelevancyMetric,
                 AnswerRelevancyMetric,
+                ContextualRelevancyMetric,
+                FaithfulnessMetric,
             )
         except ImportError as exc:
             raise ImportError(

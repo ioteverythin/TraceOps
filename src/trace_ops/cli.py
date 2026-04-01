@@ -14,6 +14,7 @@ Provides the `replay` command with subcommands:
 
 from __future__ import annotations
 
+import contextlib
 import json
 import sys
 from pathlib import Path
@@ -37,8 +38,8 @@ def main():
 @click.argument("cassette_path")
 def inspect(cassette_path: str):
     """Inspect a cassette file and show a summary."""
-    from trace_ops.cassette import load_cassette
     from trace_ops._types import EventType
+    from trace_ops.cassette import load_cassette
 
     try:
         trace = load_cassette(cassette_path)
@@ -144,7 +145,6 @@ def diff(old_path: str, new_path: str, detailed: bool, diff_output: str | None):
 
 def _print_detailed_diff(old_trace, new_trace, result):
     """Print detailed per-event diffs to terminal."""
-    from trace_ops._types import EventType
 
     old_events = old_trace.events
     new_events = new_trace.events
@@ -175,9 +175,7 @@ def _print_detailed_diff(old_trace, new_trace, result):
             status = "[green]+Added[/green]"
         elif new_e is None:
             status = "[red]-Removed[/red]"
-        elif old_e.event_type != new_e.event_type:
-            status = "[yellow]~Changed[/yellow]"
-        elif (old_e.model != new_e.model) or (old_e.tool_name != new_e.tool_name):
+        elif old_e.event_type != new_e.event_type or (old_e.model != new_e.model) or (old_e.tool_name != new_e.tool_name):
             status = "[yellow]~Changed[/yellow]"
 
         table.add_row(str(i + 1), old_desc, new_desc, status)
@@ -193,7 +191,7 @@ def _write_diff_html(old_trace, new_trace, result, output_path: str):
         old_trace,
         output_path,
         compare_trace=new_trace,
-        title=f"Diff Report",
+        title="Diff Report",
     )
 
 
@@ -480,7 +478,7 @@ def validate(cassette_path: str):
     # Check YAML parseable
     try:
         import yaml
-        with open(path, "r", encoding="utf-8") as f:
+        with open(path, encoding="utf-8") as f:
             raw = yaml.safe_load(f)
     except Exception as exc:
         console.print(f"[red]Invalid YAML: {exc}[/red]")
@@ -739,7 +737,7 @@ def rescore(cassette_path: str, scorer: str, judge_model: str, metrics: str, out
 def export_rag(cassette_dir: str, fmt: str, output: str):
     """Export RAG retrieval data from cassettes to a dataset file."""
     try:
-        from trace_ops.rag.export import to_ragas_dataset, to_deepeval_dataset, to_csv
+        from trace_ops.rag.export import to_csv, to_deepeval_dataset, to_ragas_dataset
     except ImportError:
         console.print("[red]Install trace_ops[rag] for RAG export.[/red]")
         sys.exit(1)
@@ -781,7 +779,7 @@ def export_rag(cassette_dir: str, fmt: str, output: str):
 def export_finetune(cassette_dir: str, fmt: str, output: str, system: str | None):
     """Export cassettes as fine-tuning data (JSONL)."""
     try:
-        from trace_ops.export.finetune import to_openai_finetune, to_anthropic_finetune
+        from trace_ops.export.finetune import to_anthropic_finetune, to_openai_finetune
     except ImportError:
         console.print("[red]Install trace_ops for fine-tune export.[/red]")
         sys.exit(1)
@@ -879,7 +877,7 @@ def analyze(cassette_dir: str, window: int, top: int, output: str | None, gen_sk
 
     if gen_skills:
         gen = SkillsGenerator()
-        md = gen.from_pattern_report(report, output_path=Path(gen_skills))
+        gen.from_pattern_report(report, output_path=Path(gen_skills))
         console.print(f"[green]Guidance written to {gen_skills}[/green]")
 
 
@@ -912,10 +910,8 @@ def gap_report(golden_dir: str, agent_dir: str, output: str | None, gen_skills: 
             sys.exit(1)
         pairs = []
         for path in sorted(p.rglob("*.yaml")):
-            try:
+            with contextlib.suppress(Exception):
                 pairs.append((path.name, load_cassette(path)))
-            except Exception:
-                pass
         return pairs
 
     golden = _load_dir(golden_dir)

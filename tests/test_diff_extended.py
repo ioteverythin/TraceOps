@@ -11,7 +11,6 @@ import pytest
 from trace_ops._types import EventType, Trace, TraceEvent
 from trace_ops.diff import TraceDiff, assert_trace_unchanged, diff_traces
 
-
 # ── Helpers ─────────────────────────────────────────────────────────
 
 

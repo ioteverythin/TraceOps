@@ -23,7 +23,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from trace_ops._types import Trace
@@ -71,7 +71,7 @@ class SemanticDiffResult:
 
 
 def _cosine(a: list[float], b: list[float]) -> float:
-    dot = sum(x * y for x, y in zip(a, b))
+    dot = sum(x * y for x, y in zip(a, b, strict=False))
     norm_a = math.sqrt(sum(x * x for x in a))
     norm_b = math.sqrt(sum(y * y for y in b))
     if norm_a == 0 or norm_b == 0:
@@ -93,7 +93,7 @@ def _embed(texts: list[str], model: str) -> list[list[float]]:
     return [item.embedding for item in response.data]
 
 
-def _extract_responses(trace: "Trace") -> list[str]:
+def _extract_responses(trace: Trace) -> list[str]:
     """Extract final LLM response text strings from a trace."""
     from trace_ops._types import EventType
 
@@ -103,17 +103,14 @@ def _extract_responses(trace: "Trace") -> list[str]:
             continue
         resp = e.response or {}
         choices = resp.get("choices") or []
-        if choices:
-            content = (choices[0].get("message") or {}).get("content") or ""
-        else:
-            content = str(resp)
+        content = (choices[0].get("message") or {}).get("content") or "" if choices else str(resp)
         responses.append(content)
     return responses
 
 
 def semantic_similarity(
-    old_trace: "Trace",
-    new_trace: "Trace",
+    old_trace: Trace,
+    new_trace: Trace,
     *,
     min_similarity: float = _DEFAULT_THRESHOLD,
     embedding_model: str = _DEFAULT_MODEL,
@@ -140,7 +137,7 @@ def semantic_similarity(
     n = len(old_responses)
 
     results: list[ResponseSimilarity] = []
-    for i, (old_r, new_r) in enumerate(zip(old_responses, new_responses)):
+    for i, (old_r, new_r) in enumerate(zip(old_responses, new_responses, strict=False)):
         sim = _cosine(embeddings[i], embeddings[n + i])
         passed = sim >= min_similarity
         if passed:

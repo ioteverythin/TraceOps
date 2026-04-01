@@ -15,7 +15,6 @@ from trace_ops._types import EventType, Trace, TraceEvent
 from trace_ops.cassette import CassetteMismatchError, save_cassette
 from trace_ops.replayer import Replayer
 
-
 # ── Helpers ─────────────────────────────────────────────────────────
 
 
@@ -127,10 +126,9 @@ class TestReplayerContextManager:
 
     def test_unconsumed_responses_strict(self, tmp_path: Path):
         path = _save_cassette(tmp_path, responses=2)
-        with pytest.raises(CassetteMismatchError, match="fewer LLM calls"):
-            with Replayer(str(path)) as replayer:
-                # consume only 1 of 2
-                replayer._get_next_response("openai", "gpt-4o")
+        with pytest.raises(CassetteMismatchError, match="fewer LLM calls"), Replayer(str(path)) as replayer:
+            # consume only 1 of 2
+            replayer._get_next_response("openai", "gpt-4o")
 
     def test_unconsumed_responses_non_strict(self, tmp_path: Path):
         path = _save_cassette(tmp_path, responses=2)

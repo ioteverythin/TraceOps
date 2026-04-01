@@ -7,9 +7,6 @@ are needed.
 
 from __future__ import annotations
 
-import asyncio
-import os
-import tempfile
 from pathlib import Path
 from typing import Annotated
 
@@ -33,7 +30,6 @@ from langchain_core.tools import tool
 from langgraph.graph import END, START, StateGraph
 from langgraph.graph.message import add_messages
 from typing_extensions import TypedDict
-
 
 # ── Shared state definition ─────────────────────────────────────────
 
@@ -313,7 +309,7 @@ class TestConditionalGraph:
         g.add_edge("sad_path", END)
         app = g.compile()
 
-        with Recorder(save_to=cassette_path) as rec:
+        with Recorder(save_to=cassette_path):
             result = app.invoke(
                 {"messages": [HumanMessage(content="I love this!")]}
             )

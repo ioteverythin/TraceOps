@@ -26,7 +26,7 @@ class Chunk:
         return d
 
     @classmethod
-    def from_dict(cls, d: dict[str, Any]) -> "Chunk":
+    def from_dict(cls, d: dict[str, Any]) -> Chunk:
         return cls(
             id=d.get("id", ""),
             text=d.get("text", ""),
@@ -67,7 +67,7 @@ class RetrievalEvent:
         return d
 
     @classmethod
-    def from_trace_event(cls, event: Any) -> "RetrievalEvent":
+    def from_trace_event(cls, event: Any) -> RetrievalEvent:
         """Build from a TraceEvent with event_type==RETRIEVAL."""
         chunks = [Chunk.from_dict(c) for c in (event.chunks or [])]
         return cls(

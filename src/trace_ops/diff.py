@@ -12,7 +12,7 @@ from typing import Any
 
 from deepdiff import DeepDiff
 
-from trace_ops._types import EventType, Trace, TraceEvent
+from trace_ops._types import EventType, Trace
 from trace_ops.normalize import normalize_for_comparison
 
 
@@ -165,7 +165,7 @@ def diff_traces(
     # Model-level diff (compare LLM calls pairwise)
     old_llm = [e for e in old.events if e.event_type == EventType.LLM_REQUEST]
     new_llm = [e for e in new.events if e.event_type == EventType.LLM_REQUEST]
-    for i, (o, n) in enumerate(zip(old_llm, new_llm)):
+    for i, (o, n) in enumerate(zip(old_llm, new_llm, strict=False)):
         if o.model != n.model:
             result.changed_models.append({
                 "index": i + 1,
@@ -177,7 +177,7 @@ def diff_traces(
     # Response content diff (compare LLM responses pairwise using normalization)
     old_resp = [e for e in old.events if e.event_type == EventType.LLM_RESPONSE]
     new_resp = [e for e in new.events if e.event_type == EventType.LLM_RESPONSE]
-    for i, (o, n) in enumerate(zip(old_resp, new_resp)):
+    for i, (o, n) in enumerate(zip(old_resp, new_resp, strict=False)):
         o_norm = normalize_for_comparison(o.response or {}, o.provider or "openai")
         n_norm = normalize_for_comparison(n.response or {}, n.provider or "openai")
         if o_norm != n_norm:

@@ -24,9 +24,10 @@ Usage::
 from __future__ import annotations
 
 import datetime
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 import yaml
 
@@ -99,7 +100,7 @@ class RetrieverSnapshot:
         save_to: str | Path,
         retriever_fn: Callable[..., list[dict[str, Any]]] | None = None,
         top_k: int = 5,
-    ) -> "RetrieverSnapshot":
+    ) -> RetrieverSnapshot:
         """Record current retriever behaviour as a snapshot YAML file.
 
         Args:
@@ -132,7 +133,7 @@ class RetrieverSnapshot:
         return cls(data)
 
     @classmethod
-    def load(cls, path: str | Path) -> "RetrieverSnapshot":
+    def load(cls, path: str | Path) -> RetrieverSnapshot:
         """Load a snapshot from a YAML file."""
         with open(path, encoding="utf-8") as f:
             data = yaml.safe_load(f)
@@ -210,7 +211,7 @@ class RetrieverSnapshot:
             List of result objects (one per matched retrieval event).
         """
         from types import SimpleNamespace
-        from trace_ops._types import EventType
+
 
         saved_queries: dict[str, list[dict[str, Any]]] = self.data.get("queries", {})
         results = []
@@ -251,7 +252,7 @@ class RetrieverSnapshot:
         retriever: Any,
         save_to: str | Path | None = None,
         retriever_fn: Callable[..., list[dict[str, Any]]] | None = None,
-    ) -> "RetrieverSnapshot":
+    ) -> RetrieverSnapshot:
         """Re-record all queries and overwrite the snapshot.
 
         Args:

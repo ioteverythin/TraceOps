@@ -20,7 +20,11 @@ Usage::
 """
 
 from trace_ops.semantic.assertions import SemanticRegressionError, assert_semantic_similarity
-from trace_ops.semantic.similarity import ResponseSimilarity, SemanticDiffResult, semantic_similarity
+from trace_ops.semantic.similarity import (
+    ResponseSimilarity,
+    SemanticDiffResult,
+    semantic_similarity,
+)
 
 __all__ = [
     "semantic_similarity",

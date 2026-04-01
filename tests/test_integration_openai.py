@@ -8,11 +8,9 @@ or network access needed.
 from __future__ import annotations
 
 import json
-import os
-import tempfile
 from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -25,7 +23,6 @@ from trace_ops.replayer import Replayer
 openai = pytest.importorskip("openai", reason="openai not installed")
 from openai import OpenAI
 from openai.resources.chat.completions import Completions
-
 
 # ── Helpers ──────────────────────────────────────────────────────────
 
@@ -90,7 +87,7 @@ class TestOpenAIRecordReplay:
 
         with patch.object(
             Completions, "create", return_value=fake_resp
-        ) as mock_create:
+        ):
             client = OpenAI(api_key="sk-fake")
 
             with Recorder(save_to=cassette_path) as rec:
@@ -126,7 +123,7 @@ class TestOpenAIRecordReplay:
 
         # Replay — no mock needed, replayer intercepts
         client2 = OpenAI(api_key="sk-fake")
-        with Replayer(cassette_path) as rep:
+        with Replayer(cassette_path):
             result = client2.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=[{"role": "user", "content": "What is 6*7?"}],
@@ -143,7 +140,6 @@ class TestOpenAIRecordReplay:
         ]
         call_count = 0
 
-        original_create = Completions.create
 
         def mock_create(self_inner, *args, **kwargs):
             nonlocal call_count
@@ -200,7 +196,7 @@ class TestOpenAIToolCalls:
         with patch.object(Completions, "create", return_value=fake_resp):
             client = OpenAI(api_key="sk-fake")
             with Recorder(save_to=cassette_path) as rec:
-                result = client.chat.completions.create(
+                client.chat.completions.create(
                     model="gpt-4o-mini",
                     messages=[{"role": "user", "content": "Weather?"}],
                 )
@@ -244,7 +240,7 @@ class TestOpenAIPatchCleanup:
     def test_recorder_cleans_up(self) -> None:
         original = Completions.create
 
-        with Recorder() as rec:
+        with Recorder():
             pass
 
         assert Completions.create is original

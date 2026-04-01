@@ -7,7 +7,6 @@ mismatch detection, and restores originals on exit.
 
 from __future__ import annotations
 
-from types import SimpleNamespace
 from typing import Any
 from unittest.mock import MagicMock
 
@@ -20,7 +19,6 @@ from trace_ops.replayer import (
     _dict_to_anthropic_response,
     _dict_to_openai_response,
 )
-
 
 # ── Helpers ──────────────────────────────────────────────────────────
 
@@ -143,7 +141,7 @@ class TestReplayerOpenAISync:
         original = Completions.create
 
         try:
-            with Replayer(path) as r:
+            with Replayer(path):
                 result = Completions.create(
                     MagicMock(),
                     model="gpt-4o",
@@ -163,7 +161,7 @@ class TestReplayerOpenAISync:
         original = Completions.create
 
         try:
-            with Replayer(path) as r:
+            with Replayer(path):
                 r1 = Completions.create(MagicMock(), model="gpt-4o", messages=[])
                 r2 = Completions.create(MagicMock(), model="gpt-4o", messages=[])
                 assert r1.choices[0].message.content == "First"
@@ -179,10 +177,9 @@ class TestReplayerOpenAISync:
         original = Completions.create
 
         try:
-            with pytest.raises(CassetteMismatchError, match="more LLM calls"):
-                with Replayer(path, strict=True) as r:
-                    Completions.create(MagicMock(), model="gpt-4o", messages=[])
-                    Completions.create(MagicMock(), model="gpt-4o", messages=[])  # extra
+            with pytest.raises(CassetteMismatchError, match="more LLM calls"), Replayer(path, strict=True):
+                Completions.create(MagicMock(), model="gpt-4o", messages=[])
+                Completions.create(MagicMock(), model="gpt-4o", messages=[])  # extra
         finally:
             Completions.create = original  # type: ignore[assignment]
 
@@ -196,10 +193,9 @@ class TestReplayerOpenAISync:
         original = Completions.create
 
         try:
-            with pytest.raises(CassetteMismatchError, match="fewer LLM calls"):
-                with Replayer(path, strict=True) as r:
-                    Completions.create(MagicMock(), model="gpt-4o", messages=[])
-                    # Only 1 of 2 expected calls
+            with pytest.raises(CassetteMismatchError, match="fewer LLM calls"), Replayer(path, strict=True):
+                Completions.create(MagicMock(), model="gpt-4o", messages=[])
+                # Only 1 of 2 expected calls
         finally:
             Completions.create = original  # type: ignore[assignment]
 
@@ -213,9 +209,8 @@ class TestReplayerOpenAISync:
         original = Completions.create
 
         try:
-            with pytest.raises(CassetteMismatchError, match="expected provider"):
-                with Replayer(path, strict=True) as r:
-                    Completions.create(MagicMock(), model="gpt-4o", messages=[])
+            with pytest.raises(CassetteMismatchError, match="expected provider"), Replayer(path, strict=True):
+                Completions.create(MagicMock(), model="gpt-4o", messages=[])
         finally:
             Completions.create = original  # type: ignore[assignment]
 
@@ -240,9 +235,9 @@ class TestReplayerOpenAISync:
 
         try:
             # Should NOT raise even though we make 2 calls for 1 recording
-            with Replayer(path, strict=False) as r:
+            with Replayer(path, strict=False):
                 Completions.create(MagicMock(), model="gpt-4o", messages=[])
-                r2 = Completions.create(MagicMock(), model="gpt-4o", messages=[])
+                Completions.create(MagicMock(), model="gpt-4o", messages=[])
                 # Non-strict returns empty dict when exhausted
         finally:
             Completions.create = original  # type: ignore[assignment]
@@ -267,7 +262,7 @@ class TestReplayerAnthropicSync:
         original = Messages.create
 
         try:
-            with Replayer(path) as r:
+            with Replayer(path):
                 result = Messages.create(
                     MagicMock(),
                     model="claude-3-5-sonnet",
@@ -328,7 +323,7 @@ class TestReplayerAsync:
 
         try:
             with pytest.raises(CassetteMismatchError, match="fewer LLM calls"):
-                async with Replayer(path, strict=True) as r:
+                async with Replayer(path, strict=True):
                     await AsyncCompletions.create(MagicMock(), model="gpt-4o", messages=[])
                     # only 1 of 2
         finally:
@@ -349,7 +344,7 @@ class TestReplayerStreaming:
         original = Completions.create
 
         try:
-            with Replayer(path, strict=False) as r:
+            with Replayer(path, strict=False):
                 result = Completions.create(
                     MagicMock(), model="gpt-4o", messages=[], stream=True
                 )

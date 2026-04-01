@@ -43,7 +43,7 @@ class RAGAssertionError(AssertionError):
 # ── Chunk count ──────────────────────────────────────────────────────────────
 
 
-def assert_chunk_count(trace: "Trace", *, min_chunks: int = 1, max_chunks: int = 20) -> None:
+def assert_chunk_count(trace: Trace, *, min_chunks: int = 1, max_chunks: int = 20) -> None:
     """Assert the number of retrieved chunks is within bounds for every retrieval.
 
     Args:
@@ -77,7 +77,7 @@ def assert_chunk_count(trace: "Trace", *, min_chunks: int = 1, max_chunks: int =
 # ── Retrieval latency ────────────────────────────────────────────────────────
 
 
-def assert_retrieval_latency(trace: "Trace", *, max_ms: float = 500) -> None:
+def assert_retrieval_latency(trace: Trace, *, max_ms: float = 500) -> None:
     """Assert every retrieval completed within *max_ms* milliseconds.
 
     Args:
@@ -100,7 +100,7 @@ def assert_retrieval_latency(trace: "Trace", *, max_ms: float = 500) -> None:
 # ── Minimum relevance score ──────────────────────────────────────────────────
 
 
-def assert_min_relevance_score(trace: "Trace", *, min_score: float = 0.5) -> None:
+def assert_min_relevance_score(trace: Trace, *, min_score: float = 0.5) -> None:
     """Assert every retrieved chunk meets a minimum relevance/similarity score.
 
     Args:
@@ -125,7 +125,7 @@ def assert_min_relevance_score(trace: "Trace", *, min_score: float = 0.5) -> Non
 # ── Context window usage ─────────────────────────────────────────────────────
 
 
-def assert_context_window_usage(trace: "Trace", *, max_percent: float = 70) -> None:
+def assert_context_window_usage(trace: Trace, *, max_percent: float = 70) -> None:
     """Assert retrieved context doesn't consume too much of the context window.
 
     Uses a rough ``words × 1.3`` token estimate.  For precise measurements
@@ -160,8 +160,8 @@ def assert_context_window_usage(trace: "Trace", *, max_percent: float = 70) -> N
 
 
 def assert_no_retrieval_drift(
-    old_trace: "Trace",
-    new_trace: "Trace",
+    old_trace: Trace,
+    new_trace: Trace,
     *,
     max_chunk_diff: int = 2,
     min_overlap: float = 0.6,
@@ -186,7 +186,7 @@ def assert_no_retrieval_drift(
             f"{len(old_retrievals)} → {len(new_retrievals)}"
         )
 
-    for old_r, new_r in zip(old_retrievals, new_retrievals):
+    for old_r, new_r in zip(old_retrievals, new_retrievals, strict=False):
         def _ids(event):  # noqa: E306
             return {
                 (c.get("id", "") if isinstance(c, dict) else getattr(c, "id", ""))
@@ -221,7 +221,7 @@ def assert_no_retrieval_drift(
 
 
 def assert_rag_scores(
-    trace: "Trace",
+    trace: Trace,
     *,
     min_faithfulness: float | None = None,
     min_context_precision: float | None = None,

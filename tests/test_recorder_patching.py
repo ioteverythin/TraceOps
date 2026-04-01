@@ -9,14 +9,13 @@ Uses mock SDK objects throughout; no real API calls are made.
 
 from __future__ import annotations
 
-import json
 from types import SimpleNamespace
 from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
 
-from trace_ops._types import EventType, Trace, TraceEvent
+from trace_ops._types import EventType, Trace
 from trace_ops.recorder import (
     Recorder,
     _Patch,
@@ -26,7 +25,6 @@ from trace_ops.recorder import (
     _response_to_dict,
     _safe_serialize,
 )
-
 
 # ── Helpers ──────────────────────────────────────────────────────────
 
@@ -387,9 +385,8 @@ class TestRecorderOpenAIPatching:
 
         from openai.resources.chat.completions import Completions
 
-        original_create = Completions.create
 
-        with patch.object(Completions, "create", return_value=fake_response) as mock_create:
+        with patch.object(Completions, "create", return_value=fake_response):
             # Temporarily set the original to our mock so the recorder can wrap it
             pass
 
@@ -397,7 +394,6 @@ class TestRecorderOpenAIPatching:
         # We need to mock at a level that the recorder's patched function will call
         from openai.resources.chat.completions import Completions
 
-        original = Completions.create
 
         try:
             rec = Recorder(
@@ -419,7 +415,7 @@ class TestRecorderOpenAIPatching:
         finally:
             rec._remove_patches()
             # Verify restoration
-            assert Completions.create is original or True  # just don't crash
+            assert True  # just don't crash
 
     def test_sync_captures_events(self):
         """Full end-to-end: patch, call, verify events captured."""
@@ -735,7 +731,7 @@ class TestRecorderContextManager:
                 intercept_langchain=False,
                 intercept_langgraph=False,
                 intercept_crewai=False,
-            ) as rec:
+            ):
                 Completions.create(MagicMock(), model="gpt-4o", messages=[])
 
             assert (tmp_path / "out.yaml").exists()

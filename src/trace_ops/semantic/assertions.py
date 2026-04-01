@@ -13,8 +13,8 @@ class SemanticRegressionError(AssertionError):
 
 
 def assert_semantic_similarity(
-    old_trace: "Trace",
-    new_trace: "Trace",
+    old_trace: Trace,
+    new_trace: Trace,
     *,
     min_similarity: float = 0.85,
     embedding_model: str = "text-embedding-3-small",

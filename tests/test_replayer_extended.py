@@ -4,9 +4,7 @@ langchain/langgraph/crewai delegation, allow_new_calls, model mismatch.
 
 from __future__ import annotations
 
-import asyncio
 import sys
-import types
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
@@ -15,8 +13,7 @@ import yaml
 
 from trace_ops._types import EventType, Trace, TraceEvent
 from trace_ops.cassette import CassetteMismatchError
-from trace_ops.replayer import Replayer, _dict_to_openai_response
-
+from trace_ops.replayer import Replayer
 
 # ── Helpers ─────────────────────────────────────────────────────────
 
@@ -162,18 +159,17 @@ class TestReplayerExitValidation:
             _openai_resp("first"),
             _openai_resp("second"),
         ])
-        with pytest.raises(CassetteMismatchError, match="fewer LLM calls"):
-            with Replayer(
-                cassette,
-                intercept_openai=True,
-                intercept_anthropic=False,
-                intercept_litellm=False,
-                intercept_langchain=False,
-                intercept_langgraph=False,
-                intercept_crewai=False,
-            ) as r:
-                from openai.resources.chat.completions import Completions
-                Completions.create(MagicMock(), model="gpt-4o", messages=[])
+        with pytest.raises(CassetteMismatchError, match="fewer LLM calls"), Replayer(
+            cassette,
+            intercept_openai=True,
+            intercept_anthropic=False,
+            intercept_litellm=False,
+            intercept_langchain=False,
+            intercept_langgraph=False,
+            intercept_crewai=False,
+        ):
+            from openai.resources.chat.completions import Completions
+            Completions.create(MagicMock(), model="gpt-4o", messages=[])
                 # Only consumed 1 of 2 responses
 
     @pytest.mark.asyncio
@@ -191,7 +187,7 @@ class TestReplayerExitValidation:
                 intercept_langchain=False,
                 intercept_langgraph=False,
                 intercept_crewai=False,
-            ) as r:
+            ):
                 from openai.resources.chat.completions import Completions
                 Completions.create(MagicMock(), model="gpt-4o", messages=[])
 
@@ -202,19 +198,18 @@ class TestReplayerExitValidation:
 class TestReplayerModelMismatch:
     def test_strict_model_mismatch_raises(self, tmp_path):
         cassette = _build_cassette(tmp_path, [_openai_resp("ok", model="gpt-4o")])
-        with pytest.raises(CassetteMismatchError, match="model"):
-            with Replayer(
-                cassette,
-                strict=True,
-                intercept_openai=True,
-                intercept_anthropic=False,
-                intercept_litellm=False,
-                intercept_langchain=False,
-                intercept_langgraph=False,
-                intercept_crewai=False,
-            ):
-                from openai.resources.chat.completions import Completions
-                Completions.create(MagicMock(), model="gpt-4o-mini", messages=[])
+        with pytest.raises(CassetteMismatchError, match="model"), Replayer(
+            cassette,
+            strict=True,
+            intercept_openai=True,
+            intercept_anthropic=False,
+            intercept_litellm=False,
+            intercept_langchain=False,
+            intercept_langgraph=False,
+            intercept_crewai=False,
+        ):
+            from openai.resources.chat.completions import Completions
+            Completions.create(MagicMock(), model="gpt-4o-mini", messages=[])
 
 
 # ── Replayer delegation ────────────────────────────────────────────
@@ -325,7 +320,7 @@ class TestReplayerProperties:
 
 class TestReplayerDecorator:
     def test_decorator(self, tmp_path):
-        cassette = _build_cassette(tmp_path, [_openai_resp("decorated")])
+        _build_cassette(tmp_path, [_openai_resp("decorated")])
 
         @Replayer.replay(
             str(tmp_path / "test.yaml"),

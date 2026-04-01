@@ -11,11 +11,12 @@ SDK level so we get semantic understanding of what happened.
 
 from __future__ import annotations
 
+import contextlib
 import json
 import sys
-import threading
 import time
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 from trace_ops._types import EventType, Trace, TraceEvent, TraceMetadata
 from trace_ops.cassette import save_cassette
@@ -147,17 +148,13 @@ class Recorder:
         self._patches.clear()
         # Restore RAG patches
         for _name, original, cls, attr in reversed(self._rag_patches):
-            try:
+            with contextlib.suppress(Exception):
                 setattr(cls, attr, original)
-            except Exception:
-                pass
         self._rag_patches.clear()
         # Restore MCP patches
         for _name, original, cls, attr in reversed(self._mcp_patches):
-            try:
+            with contextlib.suppress(Exception):
                 setattr(cls, attr, original)
-            except Exception:
-                pass
         self._mcp_patches.clear()
 
     def _install_rag_patches(self) -> None:
@@ -178,18 +175,14 @@ class Recorder:
             patch_qdrant,
             patch_openai_embeddings,
         ):
-            try:
+            with contextlib.suppress(Exception):
                 fn(self)
-            except Exception:
-                pass
 
     def _install_mcp_patches(self) -> None:
         """Install MCP ClientSession interceptor."""
         from trace_ops.mcp.interceptor import patch_mcp
-        try:
+        with contextlib.suppress(Exception):
             patch_mcp(self)
-        except Exception:
-            pass
 
     def record_retrieval(
         self,
@@ -248,8 +241,8 @@ class Recorder:
             return
 
         # Get the last LLM response text
-        from trace_ops._types import EventType as ET
-        llm_responses = [e for e in self._trace.events if e.event_type == ET.LLM_RESPONSE]
+        from trace_ops._types import EventType
+        llm_responses = [e for e in self._trace.events if e.event_type == EventType.LLM_RESPONSE]
         if not llm_responses:
             return
 
@@ -273,7 +266,7 @@ class Recorder:
                 response=response_text,
             )
             self._trace.add_event(TraceEvent(
-                event_type=ET.RAG_SCORES,
+                event_type=EventType.RAG_SCORES,
                 scores=result.scores,
                 metadata={
                     "scorer": result.scorer,
@@ -290,7 +283,6 @@ class Recorder:
     def _try_patch_openai(self) -> None:
         """Attempt to patch the OpenAI SDK (sync)."""
         try:
-            import openai
             from openai.resources.chat.completions import Completions
 
             original = Completions.create
@@ -453,7 +445,6 @@ class Recorder:
     def _try_patch_anthropic(self) -> None:
         """Attempt to patch the Anthropic SDK (sync)."""
         try:
-            import anthropic
             from anthropic.resources.messages import Messages
 
             original = Messages.create

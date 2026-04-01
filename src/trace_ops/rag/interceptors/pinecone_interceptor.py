@@ -10,7 +10,7 @@ if TYPE_CHECKING:
     from trace_ops.recorder import Recorder
 
 
-def patch_pinecone(recorder: "Recorder") -> None:
+def patch_pinecone(recorder: Recorder) -> None:
     """Patch Pinecone ``Index.query()`` to record retrieval events."""
     try:
         from pinecone import Index

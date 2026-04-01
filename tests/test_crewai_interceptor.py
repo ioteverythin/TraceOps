@@ -12,9 +12,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from trace_ops._types import EventType, Trace, TraceEvent
+from trace_ops._types import EventType, Trace
 from trace_ops.recorder import _Patch
-
 
 # ── Fixtures ────────────────────────────────────────────────────────
 
