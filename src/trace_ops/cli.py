@@ -1032,5 +1032,125 @@ def pr_diff(pr_url: str, token: str | None, task: bool, files: bool):
         console.print(diff.extract_task_prompt())
 
 
+@main.command("eval")
+@click.argument("cassette_path")
+@click.option(
+    "--criteria", "-c",
+    default="correctness,helpfulness,tool_efficiency",
+    help="Comma-separated criteria to evaluate (default: correctness,helpfulness,tool_efficiency).",
+)
+@click.option(
+    "--judge-model", "-m",
+    default="gpt-4o-mini",
+    help="LLM model to use as judge (default: gpt-4o-mini).",
+)
+@click.option(
+    "--provider", "-p",
+    default="openai",
+    type=click.Choice(["openai", "anthropic"]),
+    help="LLM provider for the judge (default: openai).",
+)
+@click.option(
+    "--min-score",
+    default=None,
+    type=float,
+    help="Minimum score (0-1) — exit 1 if any criterion falls below this.",
+)
+@click.option("-o", "--output", default=None, help="Write JSON evaluation report to file.")
+def eval_cmd(
+    cassette_path: str,
+    criteria: str,
+    judge_model: str,
+    provider: str,
+    min_score: float | None,
+    output: str | None,
+):
+    """Evaluate an agent trace using an LLM judge.
+
+    Scores the recorded trace against quality criteria (correctness,
+    helpfulness, safety, etc.) using an LLM-as-judge approach.
+
+    Examples:
+
+        traceops eval cassettes/test.yaml
+
+        traceops eval cassettes/test.yaml -c correctness,safety -m gpt-4o --min-score 0.7
+    """
+    try:
+        from trace_ops.eval import LLMJudge
+    except ImportError:
+        console.print(
+            "[red]Eval add-on not available. "
+            "Install with: pip install 'traceops[eval]'[/red]"
+        )
+        sys.exit(1)
+
+    from trace_ops.cassette import load_cassette
+
+    try:
+        trace = load_cassette(cassette_path)
+    except FileNotFoundError as exc:
+        console.print(f"[red]{exc}[/red]")
+        sys.exit(1)
+
+    criteria_list = [c.strip() for c in criteria.split(",") if c.strip()]
+
+    judge = LLMJudge(
+        model=judge_model,
+        provider=provider,
+        criteria=criteria_list,
+    )
+
+    with console.status(f"[bold green]Evaluating with {judge_model}..."):
+        result = judge.evaluate(trace)
+
+    # Display results
+    console.print(Panel(
+        f"[bold]Overall Score:[/bold] {result.overall_score:.2f}\n"
+        f"[bold]Judge Model:[/bold] {result.judge_model}\n"
+        f"[bold]Tokens Used:[/bold] {result.judge_tokens:,}\n"
+        f"[bold]Cost:[/bold] ${result.judge_cost_usd:.6f}\n"
+        f"[bold]Duration:[/bold] {result.judge_duration_ms:.0f}ms",
+        title=f"Eval: {cassette_path}",
+        border_style="green" if result.overall_score >= 0.7 else "yellow",
+    ))
+
+    table = Table(title="Criterion Scores")
+    table.add_column("Criterion", style="cyan", width=22)
+    table.add_column("Score", justify="right", width=8)
+    table.add_column("Raw", justify="right", width=5)
+    table.add_column("Reasoning")
+
+    for s in result.scores:
+        score_color = "green" if s.score >= 0.7 else "yellow" if s.score >= 0.4 else "red"
+        table.add_row(
+            s.criterion,
+            f"[{score_color}]{s.score:.2f}[/{score_color}]",
+            str(s.raw_score),
+            s.reasoning,
+        )
+
+    console.print(table)
+
+    if output:
+        Path(output).write_text(
+            json.dumps(result.to_dict(), indent=2, default=str), encoding="utf-8"
+        )
+        console.print(f"[green]Eval report saved to {output}[/green]")
+
+    if min_score is not None:
+        failures = [s for s in result.scores if s.score < min_score]
+        if failures:
+            for s in failures:
+                console.print(
+                    f"[red]✗ {s.criterion}: {s.score:.2f} < {min_score:.2f}[/red]"
+                )
+            sys.exit(1)
+        else:
+            console.print(
+                f"[green]✅ All criteria passed (min_score={min_score:.2f})[/green]"
+            )
+
+
 if __name__ == "__main__":
     main()

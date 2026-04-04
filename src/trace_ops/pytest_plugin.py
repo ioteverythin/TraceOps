@@ -79,6 +79,15 @@ def pytest_configure(config: pytest.Config) -> None:
         "retriever_snapshot(path, threshold=0.8): "
         "Check that retriever output matches the saved snapshot file.",
     )
+    config.addinivalue_line(
+        "markers",
+        "eval("
+        "criteria=None, "
+        "min_score=0.6, "
+        "judge_model='gpt-4o-mini', "
+        "provider='openai'"
+        "): Evaluate the recorded trace with an LLM judge after the test runs.",
+    )
 
 
 @pytest.fixture
@@ -316,3 +325,34 @@ def pytest_runtest_makereport(item: pytest.Item, call: pytest.CallInfo) -> None:
                 )
         except FileNotFoundError:
             pass  # No snapshot yet — first run silently passes
+
+    # ── eval marker (LLM-as-judge) ──────────────────────────────────
+    eval_marker = item.get_closest_marker("eval")
+    if eval_marker is not None and trace is not None:
+        try:
+            from trace_ops.eval import EvalAssertionError, LLMJudge
+        except ImportError:
+            return
+
+        eval_criteria: list[str] | None = eval_marker.kwargs.get("criteria")
+        eval_min_score: float = float(eval_marker.kwargs.get("min_score", 0.6))
+        eval_model: str = str(eval_marker.kwargs.get("judge_model", "gpt-4o-mini"))
+        eval_provider: str = str(eval_marker.kwargs.get("provider", "openai"))
+
+        judge = LLMJudge(
+            model=eval_model,
+            provider=eval_provider,
+            criteria=eval_criteria or LLMJudge.DEFAULT_CRITERIA,
+        )
+        result = judge.evaluate(trace)
+
+        failures = [s for s in result.scores if s.score < eval_min_score]
+        if failures:
+            msgs = "; ".join(
+                f"{s.criterion}={s.score:.2f} < {eval_min_score:.2f}"
+                for s in failures
+            )
+            raise EvalAssertionError(
+                f"Eval marker failed — {len(failures)} criterion/criteria below "
+                f"{eval_min_score:.0%}: {msgs}"
+            )

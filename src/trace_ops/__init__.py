@@ -91,6 +91,23 @@ try:
 except ImportError:
     _EXPORT_AVAILABLE = False
 
+# Eval add-on (LLM-as-judge evaluation)
+try:
+    from trace_ops.eval import (
+        BUILTIN_CRITERIA,
+        CriterionScore,
+        EvalAssertionError,
+        EvalCriteria,
+        LLMJudge,
+        TraceEvaluation,
+        assert_eval_score,
+        assert_passes_criteria,
+        build_trace_summary,
+    )
+    _EVAL_AVAILABLE = True
+except ImportError:
+    _EVAL_AVAILABLE = False
+
 # Behavioral analysis (always available — no extra deps)
 from trace_ops.analysis import (
     BehavioralGap,
@@ -170,4 +187,15 @@ __all__ = [
     "SkillsGenerator",
     # GitHub integration
     "PRFetcher",
-    "PRDiff",]
+    "PRDiff",
+    # Eval (LLM-as-judge — available when trace_ops[eval] installed)
+    "LLMJudge",
+    "EvalCriteria",
+    "CriterionScore",
+    "TraceEvaluation",
+    "EvalAssertionError",
+    "BUILTIN_CRITERIA",
+    "assert_eval_score",
+    "assert_passes_criteria",
+    "build_trace_summary",
+]
