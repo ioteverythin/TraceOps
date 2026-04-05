@@ -361,6 +361,7 @@ tr:hover td { background: var(--bg-sidebar); }
       <a href="#" data-page="mcp"      onclick="navigate('mcp');return false;">MCP Tools <span class="sbadge v5-b">v0.5</span></a>
       <a href="#" data-page="semantic" onclick="navigate('semantic');return false;">Semantic Diff <span class="sbadge v5-b">v0.5</span></a>
       <a href="#" data-page="finetune" onclick="navigate('finetune');return false;">Fine-tune Export <span class="sbadge v5-b">v0.5</span></a>
+      <a href="#" data-page="eval" onclick="navigate('eval');return false;">LLM-as-Judge Eval <span class="sbadge new-b">NEW</span></a>
     </div>
     <div class="sidebar-divider"></div>
     <div class="sidebar-section">
@@ -398,7 +399,7 @@ tr:hover td { background: var(--bg-sidebar); }
 
         <div class="callout info">
           <strong>&#x1F195; What&#8217;s new in v0.6</strong>
-          <p>Behavioral analysis sub-package: <code>PatternDetector</code>, <code>GapAnalyzer</code>, <code>SkillsGenerator</code>, and <code>PRFetcher</code> &#8212; inspired by <a href="https://github.com/sshh12/agent-pr-replay" target="_blank">agent-pr-replay</a>. See the <a href="#" onclick="navigate('patterns');return false;">Behavioral Analysis</a> section.</p>
+          <p>Behavioral analysis sub-package: <code>PatternDetector</code>, <code>GapAnalyzer</code>, <code>SkillsGenerator</code>, and <code>PRFetcher</code>. Plus <strong>LLM-as-Judge evaluation</strong> &#8212; score any trace against quality criteria like correctness, safety, and helpfulness. See <a href="#" onclick="navigate('eval');return false;">LLM-as-Judge Eval</a> and <a href="#" onclick="navigate('patterns');return false;">Behavioral Analysis</a>.</p>
         </div>
 
         <h2 id="what-is-traceops">What is TraceOps?</h2>
@@ -430,6 +431,7 @@ tr:hover td { background: var(--bg-sidebar); }
           <div class="feat-card"><h4>&#x1F4C8; Pattern Analysis</h4><p>Tool n-gram heatmaps, model stats, error rates across entire cassette libraries.</p></div>
           <div class="feat-card"><h4>&#x1F534; Gap Analyzer</h4><p>Compare agent vs golden baseline &#8212; auto-detect inflation, missing tools, model mismatch.</p></div>
           <div class="feat-card"><h4>&#x1F4DD; AGENTS.md Gen</h4><p>Auto-generate steering guidance from behavioral gaps.</p></div>
+          <div class="feat-card"><h4>&#9878; LLM-as-Judge</h4><p>Evaluate any trace against quality criteria &#8212; correctness, safety, helpfulness &#8212; using an LLM judge.</p></div>
         </div>
 
         <h2 id="supported-providers">Supported providers</h2>
@@ -522,9 +524,10 @@ pip install traceops[anthropic]    <span class="cm"># Anthropic SDK</span>
 pip install traceops[langchain]    <span class="cm"># LangChain + LangGraph</span>
 pip install traceops[crewai]       <span class="cm"># CrewAI</span>
 pip install traceops[rag]          <span class="cm"># RAG scoring (ragas, deepeval)</span>
+pip install traceops[eval]         <span class="cm"># LLM-as-Judge eval (openai)</span>
 pip install traceops[all]          <span class="cm"># Everything</span></pre></div>
 
-        <div class="callout info"><strong>&#8505; No extra dependencies for analysis</strong><p>The <code>trace_ops.analysis</code> and <code>trace_ops.github</code> sub-packages use only Python stdlib &#8212; no additional packages required.</p></div>
+        <div class="callout info"><strong>&#8505; No extra dependencies for analysis</strong><p>The <code>trace_ops.analysis</code> and <code>trace_ops.github</code> sub-packages use only Python stdlib &#8212; no additional packages required. The eval module requires <code>traceops[openai]</code> or <code>traceops[anthropic]</code>.</p></div>
 
         <div class="page-footer">
           <a href="https://github.com/ioteverythin/TraceOps/blob/main/README.md" class="edit-link" target="_blank">&#9998; Edit on GitHub</a>
@@ -771,6 +774,151 @@ export_finetune_jsonl(<span class="st">"cassettes/"</span>, <span class="st">"da
         </div>
       </div>
 
+      <!-- ══ EVAL ═════════════════════════════════════════════════════════════════ -->
+      <div class="doc-page" id="page-eval">
+        <div class="breadcrumb"><a href="#" onclick="navigate('overview');return false;">Docs</a><span>/</span>Features<span>/</span>LLM-as-Judge Eval</div>
+        <h1 class="page-title">LLM-as-Judge Evaluation</h1>
+        <p class="page-intro">Evaluate any agent trace against named quality criteria using an LLM judge. Score correctness, safety, helpfulness, and more &#8212; in code, in CI, or from the CLI.</p>
+
+        <div class="callout info"><strong>&#8505; Requires an LLM provider</strong><p>Install <code>pip install traceops[eval]</code> (OpenAI) or <code>pip install traceops[anthropic]</code>. An API key is needed for the judge model.</p></div>
+
+        <h2 id="eval-criteria">Built-in criteria</h2>
+        <p>Eight criteria ship out of the box. Pass them by name or use custom <code>EvalCriteria</code> objects.</p>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Criterion</th><th>What it measures</th></tr></thead>
+          <tbody>
+            <tr><td><code>correctness</code></td><td>Is the final response factually accurate and appropriate?</td></tr>
+            <tr><td><code>helpfulness</code></td><td>Did the agent genuinely help the user achieve their goal?</td></tr>
+            <tr><td><code>conciseness</code></td><td>Is the response concise without unnecessary verbosity?</td></tr>
+            <tr><td><code>safety</code></td><td>Did the agent avoid harmful or dangerous content?</td></tr>
+            <tr><td><code>tool_efficiency</code></td><td>Were tools used efficiently without redundant calls or loops?</td></tr>
+            <tr><td><code>goal_completion</code></td><td>Did the agent fully complete the stated task?</td></tr>
+            <tr><td><code>faithfulness</code></td><td>Did the agent stay faithful to retrieved context?</td></tr>
+            <tr><td><code>tone</code></td><td>Was the tone professional, empathetic, and appropriate?</td></tr>
+          </tbody>
+        </table></div>
+
+        <h2 id="eval-basic">Basic usage</h2>
+        <div class="code-block"><div class="code-header"><span class="code-lang">python</span><button class="copy-btn" onclick="copyCode(this)">&#8984; Copy</button></div><pre><span class="kw">from</span> <span class="fn">trace_ops</span> <span class="kw">import</span> load_cassette
+<span class="kw">from</span> <span class="fn">trace_ops.eval</span> <span class="kw">import</span> LLMJudge
+
+trace = load_cassette(<span class="st">"cassettes/agent_run.yaml"</span>).trace
+
+<span class="cm"># Create a judge with default criteria (correctness, helpfulness, tool_efficiency)</span>
+judge = <span class="fn">LLMJudge</span>(model=<span class="st">"gpt-4o-mini"</span>)
+result = judge.evaluate(trace)
+
+<span class="fn">print</span>(result.summary())
+<span class="cm"># Trace Evaluation  overall=0.83  model=gpt-4o-mini  tokens=340
+#   correctness            ████████░░ 0.80  Answer is accurate...
+#   helpfulness            ██████████ 1.00  Very actionable response...
+#   tool_efficiency        ███████░░░ 0.70  One redundant search call...</span></pre></div>
+
+        <h2 id="eval-specific">Evaluating specific criteria</h2>
+        <div class="code-block"><div class="code-header"><span class="code-lang">python</span><button class="copy-btn" onclick="copyCode(this)">&#8984; Copy</button></div><pre><span class="cm"># Evaluate only safety and correctness</span>
+judge = <span class="fn">LLMJudge</span>(
+    model=<span class="st">"gpt-4o-mini"</span>,
+    criteria=[<span class="st">"correctness"</span>, <span class="st">"safety"</span>, <span class="st">"goal_completion"</span>],
+)
+result = judge.evaluate(trace)
+
+<span class="cm"># Check individual scores</span>
+safety = result.score_for(<span class="st">"safety"</span>)
+<span class="fn">print</span>(<span class="st">f"Safety: {safety.score:.2f} &#8212; {safety.reasoning}"</span>)
+
+<span class="cm"># Check pass/fail</span>
+<span class="fn">print</span>(result.passes(<span class="st">"safety"</span>, min_score=<span class="nb">0.8</span>))  <span class="cm"># True / False</span></pre></div>
+
+        <h2 id="eval-custom">Custom criteria</h2>
+        <p>Define your own criteria with <code>EvalCriteria</code> and mix them with built-in names.</p>
+        <div class="code-block"><div class="code-header"><span class="code-lang">python</span><button class="copy-btn" onclick="copyCode(this)">&#8984; Copy</button></div><pre><span class="kw">from</span> <span class="fn">trace_ops.eval</span> <span class="kw">import</span> EvalCriteria, LLMJudge
+
+brand_voice = <span class="fn">EvalCriteria</span>(
+    name=<span class="st">"brand_voice"</span>,
+    description=<span class="st">"Does the response match our brand voice guidelines? "</span>
+                <span class="st">"Professional but friendly, no jargon."</span>,
+)
+
+pii_check = <span class="fn">EvalCriteria</span>(
+    name=<span class="st">"pii_safety"</span>,
+    description=<span class="st">"Did the agent avoid leaking any PII such as emails, "</span>
+                <span class="st">"phone numbers, or addresses?"</span>,
+)
+
+judge = <span class="fn">LLMJudge</span>(
+    model=<span class="st">"gpt-4o-mini"</span>,
+    criteria=[<span class="st">"correctness"</span>, brand_voice, pii_check],
+)
+result = judge.evaluate(trace)
+<span class="fn">print</span>(result.summary())</pre></div>
+
+        <h2 id="eval-anthropic">Using Anthropic as judge</h2>
+        <div class="code-block"><div class="code-header"><span class="code-lang">python</span><button class="copy-btn" onclick="copyCode(this)">&#8984; Copy</button></div><pre>judge = <span class="fn">LLMJudge</span>(
+    model=<span class="st">"claude-opus-4-5"</span>,
+    provider=<span class="st">"anthropic"</span>,
+)
+result = judge.evaluate(trace)
+<span class="fn">print</span>(result.summary())</pre></div>
+
+        <h2 id="eval-assertions">Test assertions</h2>
+        <p>Use assertion helpers to gate your CI pipeline on eval scores.</p>
+        <div class="code-block"><div class="code-header"><span class="code-lang">python</span><button class="copy-btn" onclick="copyCode(this)">&#8984; Copy</button></div><pre><span class="kw">from</span> <span class="fn">trace_ops.eval</span> <span class="kw">import</span> assert_eval_score, assert_passes_criteria
+
+<span class="cm"># Assert all default criteria score &gt;= 0.6</span>
+result = <span class="fn">assert_eval_score</span>(trace, judge=judge)
+
+<span class="cm"># Assert specific criteria with a higher bar</span>
+<span class="fn">assert_eval_score</span>(trace, criteria=[<span class="st">"safety"</span>, <span class="st">"correctness"</span>], min_score=<span class="nb">0.8</span>)
+
+<span class="cm"># Convenience shorthand</span>
+<span class="fn">assert_passes_criteria</span>(trace, [<span class="st">"correctness"</span>, <span class="st">"helpfulness"</span>])
+
+<span class="cm"># Raises EvalAssertionError on failure:
+# EvalAssertionError: Criteria below threshold 0.80:
+#   safety: 0.60 (min 0.80) &#8212; Agent disclosed internal config...</span></pre></div>
+
+        <h2 id="eval-pytest">pytest marker</h2>
+        <p>The <code>@pytest.mark.eval</code> marker auto-evaluates the cassette after the test completes.</p>
+        <div class="code-block"><div class="code-header"><span class="code-lang">python &#8212; test_agent.py</span><button class="copy-btn" onclick="copyCode(this)">&#8984; Copy</button></div><pre><span class="kw">import</span> pytest
+
+<span class="op">@pytest.mark.eval</span>(criteria=[<span class="st">"correctness"</span>, <span class="st">"safety"</span>], min_score=<span class="nb">0.8</span>)
+<span class="kw">def</span> <span class="fn">test_agent_safe</span>(cassette):
+    result = agent.run(<span class="st">"Summarize the quarterly report"</span>)
+    <span class="kw">assert</span> <span class="st">"revenue"</span> <span class="kw">in</span> result.lower()
+    <span class="cm"># After the test body passes, the eval marker evaluates the</span>
+    <span class="cm"># recorded trace and fails if any criterion is below 0.8</span></pre></div>
+
+        <h2 id="eval-cli">CLI command</h2>
+        <div class="code-block"><div class="code-header"><span class="code-lang">bash</span><button class="copy-btn" onclick="copyCode(this)">&#8984; Copy</button></div><pre><span class="cm"># Evaluate a cassette with default criteria</span>
+traceops eval cassettes/agent_run.yaml
+
+<span class="cm"># Specific criteria + minimum score</span>
+traceops eval cassettes/agent_run.yaml --criteria correctness safety --min-score 0.8
+
+<span class="cm"># Save results to JSON</span>
+traceops eval cassettes/agent_run.yaml --output eval_results.json</pre></div>
+
+        <h2 id="eval-api">API reference</h2>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Class / Function</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td><code>LLMJudge</code></td><td>Main judge. Call <code>.evaluate(trace)</code> to get a <code>TraceEvaluation</code>.</td></tr>
+            <tr><td><code>EvalCriteria</code></td><td>Dataclass defining a custom criterion (name, description, scale).</td></tr>
+            <tr><td><code>TraceEvaluation</code></td><td>Result object: <code>.scores</code>, <code>.overall_score</code>, <code>.summary()</code>, <code>.to_dict()</code>.</td></tr>
+            <tr><td><code>CriterionScore</code></td><td>Single score: <code>.criterion</code>, <code>.score</code>, <code>.raw_score</code>, <code>.reasoning</code>.</td></tr>
+            <tr><td><code>assert_eval_score()</code></td><td>Assert all criteria meet a minimum normalised score.</td></tr>
+            <tr><td><code>assert_passes_criteria()</code></td><td>Convenience wrapper &#8212; positional criteria list.</td></tr>
+            <tr><td><code>BUILTIN_CRITERIA</code></td><td>Dict of all 8 built-in <code>EvalCriteria</code> objects.</td></tr>
+            <tr><td><code>build_trace_summary()</code></td><td>Convert a <code>Trace</code> to the text transcript the judge reads.</td></tr>
+          </tbody>
+        </table></div>
+
+        <div class="page-footer">
+          <a href="https://github.com/ioteverythin/TraceOps" class="edit-link" target="_blank">&#9998; Edit on GitHub</a>
+          <div class="helpful"><span>Was this helpful?</span><button onclick="markHelpful(this,true)">&#x1F44D; Yes</button><button onclick="markHelpful(this,false)">&#x1F44E; No</button></div>
+        </div>
+      </div>
+
       <!-- ══ PATTERN DETECTOR ════════════════════════════════════════════════════ -->
       <div class="doc-page" id="page-patterns">
         <div class="breadcrumb"><a href="#" onclick="navigate('overview');return false;">Docs</a><span>/</span>Behavioral Analysis<span>/</span>Pattern Detector</div>
@@ -1005,6 +1153,19 @@ traceops pr-diff https://github.com/owner/repo/pull/123
 traceops pr-diff https://github.com/owner/repo/pull/123 --task
 traceops pr-diff https://github.com/owner/repo/pull/123 --files</pre></div>
 
+        <h2 id="cli-eval">Eval commands</h2>
+        <div class="code-block"><div class="code-header"><span class="code-lang">bash</span><button class="copy-btn" onclick="copyCode(this)">&#8984; Copy</button></div><pre><span class="cm"># Evaluate a cassette against default criteria</span>
+traceops eval cassettes/test.yaml
+
+<span class="cm"># Specific criteria with minimum score threshold</span>
+traceops eval cassettes/test.yaml --criteria correctness safety --min-score 0.8
+
+<span class="cm"># Use a different judge model / provider</span>
+traceops eval cassettes/test.yaml --judge-model claude-opus-4-5 --provider anthropic
+
+<span class="cm"># Output results as JSON</span>
+traceops eval cassettes/test.yaml --output results.json</pre></div>
+
         <div class="page-footer">
           <a href="https://github.com/ioteverythin/TraceOps" class="edit-link" target="_blank">&#9998; Edit on GitHub</a>
           <div class="helpful"><span>Was this helpful?</span><button onclick="markHelpful(this,true)">&#x1F44D; Yes</button><button onclick="markHelpful(this,false)">&#x1F44E; No</button></div>
@@ -1020,8 +1181,11 @@ traceops pr-diff https://github.com/owner/repo/pull/123 --files</pre></div>
         <ul>
           <li>Add <code>trace_ops.analysis</code>: <code>PatternDetector</code>, <code>GapAnalyzer</code>, <code>BehavioralGap</code>, <code>GapReport</code>, <code>SkillsGenerator</code></li>
           <li>Add <code>trace_ops.github</code>: <code>PRFetcher</code>, <code>PRDiff</code>, <code>PRFile</code></li>
-          <li>3 new CLI commands: <code>traceops analyze</code>, <code>traceops gap-report</code>, <code>traceops pr-diff</code></li>
-          <li>714 tests passing</li>
+          <li>Add <code>trace_ops.eval</code>: <code>LLMJudge</code>, <code>EvalCriteria</code>, <code>CriterionScore</code>, <code>TraceEvaluation</code>, assertion helpers</li>
+          <li>8 built-in eval criteria: correctness, helpfulness, conciseness, safety, tool_efficiency, goal_completion, faithfulness, tone</li>
+          <li><code>traceops eval</code> CLI command + <code>@pytest.mark.eval</code> marker</li>
+          <li>4 new CLI commands: <code>traceops analyze</code>, <code>traceops gap-report</code>, <code>traceops pr-diff</code>, <code>traceops eval</code></li>
+          <li>748 tests passing</li>
         </ul>
 
         <h2 id="v05">v0.5.0</h2>
